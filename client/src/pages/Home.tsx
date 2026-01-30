@@ -233,11 +233,14 @@ export default function Home() {
   }, [toast]);
 
   const handleReset = useCallback(() => {
-    setPnlData(defaultPnlData);
+    setPnlData(prev => ({
+      ...defaultPnlData,
+      walletBalance: prev.walletBalance // Keep the user's capital even on reset
+    }));
     setIsLive(false);
     toast({
       title: "Reset complete",
-      description: "All values have been reset to defaults.",
+      description: "Trade values reset, but your Capital remains saved.",
     });
   }, [toast]);
 
