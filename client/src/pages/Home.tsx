@@ -5,11 +5,12 @@ import { PnlForm } from "@/components/PnlForm";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Download, Image, RotateCcw } from "lucide-react";
+import { Download, Image, RotateCcw, Plus, X } from "lucide-react"; // Added Plus and X for UI
 import { domToPng, domToBlob } from "modern-screenshot";
 import { useToast } from "@/hooks/use-toast";
 
 const defaultPnlData: PnlData = {
+  id: Math.random().toString(36).substring(7), // Add a unique ID for each trade
   symbol: "BTCUSDT",
   type: "Perp",
   marginMode: "Cross",
@@ -31,117 +32,188 @@ const defaultPnlData: PnlData = {
 };
 
 export default function Home() {
-  const [pnlData, setPnlData] = useState<PnlData>(() => {
-    const saved = localStorage.getItem("pnlData");
-    return saved ? JSON.parse(saved) : defaultPnlData;
+  const [trades, setTrades] = useState<PnlData[]>(() => {
+    const saved = localStorage.getItem("trades");
+    const parsedTrades = saved ? JSON.parse(saved) : [defaultPnlData];
+    // Ensure all trades have an ID, assign one if missing
+    return parsedTrades.map((trade: PnlData) => ({
+      ...trade,
+      id: trade.id || Math.random().toString(36).substring(7),
+    }));
   });
+
+  const [activeId, setActiveId] = useState<string>(() => {
+    const savedActiveId = localStorage.getItem("activeTradeId");
+    const initialTrades = JSON.parse(localStorage.getItem("trades") || "[]");
+    return savedActiveId || initialTrades[0]?.id || defaultPnlData.id!;
+  });
+
   const [isExporting, setIsExporting] = useState(false);
   const [isLive, setIsLive] = useState(() => {
     return localStorage.getItem("isLive") === "true";
   });
+
   const cardRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
+  // Derive the active trade
+  const activeTrade = trades.find(t => t.id === activeId) || trades[0];
+
   // Save state to localStorage whenever it changes
   useEffect(() => {
-    localStorage.setItem("pnlData", JSON.stringify(pnlData));
+    localStorage.setItem("trades", JSON.stringify(trades));
+    localStorage.setItem("activeTradeId", activeId);
     localStorage.setItem("isLive", isLive.toString());
-  }, [pnlData, isLive]);
+  }, [trades, activeId, isLive]);
 
+  // WebSocket for all unique symbols
   useEffect(() => {
-    if (!isLive) return;
+    if (!isLive || trades.length === 0) return;
 
-    const symbol = pnlData.symbol.toLowerCase();
-    const ws = new WebSocket(`wss://fstream.binance.com/ws/${symbol}@ticker`);
+    const uniqueSymbols = Array.from(new Set(trades.map(t => t.symbol.toLowerCase())));
+    if (uniqueSymbols.length === 0) return; // No symbols to subscribe to
+
+    const streams = uniqueSymbols.map(s => `${s}@ticker`).join('/');
+    const ws = new WebSocket(`wss://fstream.binance.com/stream?streams=${streams}`);
 
     ws.onopen = () => {
       toast({
         title: "Live Data Connected",
-        description: `Streaming ${pnlData.symbol} prices from Binance...`,
+        description: `Streaming prices for ${uniqueSymbols.join(', ').toUpperCase()} from Binance...`,
       });
     };
 
-    ws.onerror = () => {
+    ws.onerror = (error) => {
+      console.error("WebSocket error:", error);
       toast({
         title: "Connection Failed",
-        description: `Could not find ${pnlData.symbol} on Binance Futures. Check the symbol name.`,
+        description: `Could not connect to Binance Futures for some symbols. Check names.`,
         variant: "destructive",
       });
     };
 
     ws.onmessage = (event) => {
-      const data = JSON.parse(event.data);
-      if (data.e === '24hrTicker') {
-        const price = parseFloat(data.c); // 'c' is the Last Price
-        setPnlData(prev => ({
-          ...prev,
-          markPrice: price
+      const msg = JSON.parse(event.data);
+      if (msg.data && msg.data.e === '24hrTicker') {
+        const symbol = msg.data.s; // Symbol name like 'BTCUSDT'
+        const price = parseFloat(msg.data.c);
+
+        setTrades(prev => prev.map(t => {
+          if (t.symbol.toUpperCase() === symbol.toUpperCase()) {
+            return { ...t, markPrice: price };
+          }
+          return t;
         }));
       }
     };
 
     return () => {
       ws.close();
+      toast({
+        title: "Live Data Disconnected",
+        description: "Stopped streaming prices.",
+      });
     };
-  }, [isLive, pnlData.symbol, toast]);
+  }, [isLive, JSON.stringify(trades.map(t => t.symbol)), toast]); // Re-run if isLive changes or symbols change
 
-  // Handle instant updates and automatic calculations
+  // Automatic calculations for all trades
   useEffect(() => {
-    // We only automate everything if we have entryPrice and size
-    if (!pnlData.entryPrice || !pnlData.size) return;
+    const updatedTrades = trades.map(t => {
+      // We only automate everything if we have entryPrice and size
+      if (!t.entryPrice || !t.size) return t;
 
-    // Use current markPrice (live) or if not live, it can still use the last markPrice value
-    const currentPrice = pnlData.markPrice || pnlData.entryPrice;
+      // Use current markPrice (live) or if not live, it can still use the last markPrice value
+      const currentPrice = t.markPrice || t.entryPrice;
 
-    // Determine the actual position value based on unit
-    // If unit is USDT, size is already the position value (Notional)
-    // If unit is Coin (BTC, ETH, etc.), position value = entryPrice * size
-    const isUnitUsdt = pnlData.sizeUnit?.toUpperCase() === 'USDT';
-    const positionValue = isUnitUsdt ? pnlData.size : pnlData.entryPrice * pnlData.size;
-    const sizeInCoin = isUnitUsdt ? pnlData.size / pnlData.entryPrice : pnlData.size;
+      // Determine the actual position value based on unit
+      // If unit is USDT, size is already the position value (Notional)
+      // If unit is Coin (BTC, ETH, etc.), position value = entryPrice * size
+      const isUnitUsdt = t.sizeUnit?.toUpperCase() === 'USDT';
+      const positionValue = isUnitUsdt ? t.size : t.entryPrice * t.size;
+      const sizeInCoin = isUnitUsdt ? t.size / t.entryPrice : t.size;
 
-    const direction = pnlData.positionType === 'Long' ? 1 : -1;
-    const pnl = (currentPrice - pnlData.entryPrice) * sizeInCoin * direction;
-    const initialMargin = positionValue / (pnlData.leverage || 1);
-    const roi = (pnl / initialMargin) * 100;
+      const direction = t.positionType === 'Long' ? 1 : -1;
+      const pnl = (currentPrice - t.entryPrice) * sizeInCoin * direction;
+      const initialMargin = positionValue / (t.leverage || 1);
+      const roi = (pnl / initialMargin) * 100;
 
-    const maintenanceMargin = positionValue * 0.004; // Standard 0.4% MMR
-    const marginBalance = pnlData.walletBalance + pnl;
-    const marginRatio = marginBalance <= 0 ? 100 : (maintenanceMargin / marginBalance) * 100;
+      const maintenanceMargin = positionValue * 0.004; // Standard 0.4% MMR
+      const marginBalance = t.walletBalance + pnl;
+      const marginRatio = marginBalance <= 0 ? 100 : (maintenanceMargin / marginBalance) * 100;
 
-    // Standard Binance Liquidation Price formula (simplified)
-    const liqPrice = pnlData.positionType === 'Long'
-      ? pnlData.entryPrice * (1 - (1 / pnlData.leverage) + 0.004)
-      : pnlData.entryPrice * (1 + (1 / pnlData.leverage) - 0.004);
+      // Standard Binance Liquidation Price formula (simplified)
+      const liqPrice = t.positionType === 'Long'
+        ? t.entryPrice * (1 - (1 / t.leverage) + 0.004)
+        : t.entryPrice * (1 + (1 / t.leverage) - 0.004);
 
-    // Update state if any calculated value differs significantly
-    const shouldUpdate =
-      Math.abs(pnl - pnlData.unrealizedPnl) > 0.01 ||
-      Math.abs(roi - pnlData.roi) > 0.01 ||
-      Math.abs(initialMargin - pnlData.margin) > 0.01 ||
-      Math.abs(marginRatio - pnlData.marginRatio) > 0.01 ||
-      Math.abs(liqPrice - pnlData.liqPrice) > 0.01;
+      // Check if we need to update to avoid infinite loop
+      // Compare with existing values, using 0 if undefined
+      if (
+        Math.abs(pnl - (t.unrealizedPnl || 0)) > 0.01 ||
+        Math.abs(roi - (t.roi || 0)) > 0.01 ||
+        Math.abs(initialMargin - (t.margin || 0)) > 0.01 ||
+        Math.abs(marginRatio - (t.marginRatio || 0)) > 0.01 ||
+        Math.abs(liqPrice - (t.liqPrice || 0)) > 0.01
+      ) {
+        return {
+          ...t,
+          unrealizedPnl: Number(pnl.toFixed(2)),
+          roi: Number(roi.toFixed(2)),
+          margin: Number(initialMargin.toFixed(2)),
+          marginRatio: Number(Math.max(0, Math.min(marginRatio, 100)).toFixed(2)),
+          liqPrice: Number(liqPrice.toFixed(2))
+        };
+      }
+      return t;
+    });
 
-    if (shouldUpdate) {
-      setPnlData(prev => ({
-        ...prev,
-        unrealizedPnl: Number(pnl.toFixed(2)),
-        roi: Number(roi.toFixed(2)),
-        margin: Number(initialMargin.toFixed(2)),
-        marginRatio: Number(Math.max(0, Math.min(marginRatio, 100)).toFixed(2)),
-        liqPrice: Number(liqPrice.toFixed(2))
-      }));
+    // Only update state if any trade actually changed to prevent unnecessary re-renders
+    // Deep comparison is needed here, but for simplicity, we'll check if the array reference changed
+    // A more robust solution might involve a custom equality check or use-deep-compare-effect
+    // For now, we'll rely on the fact that `map` creates new objects only if values change.
+    // If no trade objects were modified, `updatedTrades` will contain the same objects as `trades`.
+    // However, `setTrades` will still trigger a re-render if the array reference changes.
+    // A simple JSON.stringify comparison can work for small, non-circular objects.
+    if (JSON.stringify(updatedTrades) !== JSON.stringify(trades)) {
+      setTrades(updatedTrades);
     }
   }, [
-    isLive,
-    pnlData.markPrice,
-    pnlData.entryPrice,
-    pnlData.size,
-    pnlData.sizeUnit,
-    pnlData.positionType,
-    pnlData.leverage,
-    pnlData.walletBalance
+    trades, // Depend on the entire trades array to trigger recalculations
+    // Specific properties that might change and affect calculations
+    // (though `trades` dependency covers this, explicit listing can sometimes help clarity or specific optimizations)
   ]);
+
+  const addTrade = () => {
+    const newTrade = {
+      ...defaultPnlData,
+      id: Math.random().toString(36).substring(7),
+      // Optionally, copy some values from the last trade or active trade
+      symbol: trades[trades.length - 1]?.symbol || "BTCUSDT",
+      walletBalance: activeTrade?.walletBalance || defaultPnlData.walletBalance,
+    };
+    setTrades([...trades, newTrade]);
+    setActiveId(newTrade.id);
+    toast({ title: "New Trade Added", description: "You now have a new trade slot." });
+  };
+
+  const deleteTrade = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent tab activation
+    if (trades.length === 1) {
+      toast({ title: "Cannot Delete", description: "You must have at least one trade.", variant: "destructive" });
+      return;
+    }
+    const newTrades = trades.filter(t => t.id !== id);
+    setTrades(newTrades);
+    if (activeId === id) {
+      // If the active trade was deleted, set the first remaining trade as active
+      setActiveId(newTrades[0].id!);
+    }
+    toast({ title: "Trade Deleted" });
+  };
+
+  const updateActiveTrade = (data: PnlData) => {
+    setTrades(prev => prev.map(t => t.id === activeId ? data : t));
+  };
 
   const handleExport = useCallback(async () => {
     if (!cardRef.current) return;
@@ -165,7 +237,7 @@ export default function Home() {
 
       const a = document.createElement("a");
       a.href = dataUrl;
-      a.download = `pnl-${pnlData.symbol}-${Date.now()}.png`;
+      a.download = `pnl-${activeTrade?.symbol || 'trade'}-${Date.now()}.png`;
       a.style.display = "none";
       document.body.appendChild(a);
       a.click();
@@ -189,7 +261,7 @@ export default function Home() {
     } finally {
       setIsExporting(false);
     }
-  }, [pnlData.symbol, toast]);
+  }, [activeTrade, toast]);
 
   const handleCopyToClipboard = useCallback(async () => {
     if (!cardRef.current) return;
@@ -233,80 +305,96 @@ export default function Home() {
   }, [toast]);
 
   const handleReset = useCallback(() => {
-    setPnlData(prev => ({
-      ...defaultPnlData,
-      walletBalance: prev.walletBalance // Keep the user's capital even on reset
-    }));
+    setTrades(prev => prev.map(t =>
+      t.id === activeId
+        ? { ...defaultPnlData, id: t.id, walletBalance: t.walletBalance } // Keep ID and walletBalance
+        : t
+    ));
     setIsLive(false);
     toast({
       title: "Reset complete",
-      description: "Trade values reset, but your Capital remains saved.",
+      description: "Active trade values reset, but your Capital remains saved.",
     });
-  }, [toast]);
+  }, [activeId, toast]);
 
   return (
     <div className="min-h-screen bg-background font-medium text-[17px]">
       <header className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-50">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between gap-4">
+        <div className="container mx-auto px-4 py-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center">
               <span className="text-sm font-bold text-primary-foreground">B</span>
             </div>
             <div>
-              <h1 className="text-lg font-semibold text-foreground">PNL Generator</h1>
-              <p className="text-xs text-muted-foreground">Create trading PNL images</p>
+              <h1 className="text-lg font-semibold text-foreground tracking-tight">PNL Generator PRO</h1>
+              <div className="flex items-center gap-2">
+                <div className={`w-1.5 h-1.5 rounded-full ${isLive ? 'bg-green-500 animate-pulse' : 'bg-muted-foreground'}`} />
+                <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest">
+                  {isLive ? 'Live Exchange Hub' : 'Offline Engine'}
+                </p>
+              </div>
             </div>
           </div>
-          <div className="flex items-center gap-4">
-            <div className="flex items-center space-x-2 bg-secondary/30 px-3 py-1.5 rounded-full border border-border">
-              <div className={`w-2 h-2 rounded-full ${isLive ? 'bg-green-500 animate-pulse' : 'bg-muted-foreground'}`} />
-              <Switch
-                id="live-mode"
-                checked={isLive}
-                onCheckedChange={setIsLive}
-              />
-              <Label htmlFor="live-mode" className="cursor-pointer text-sm font-semibold">
-                {isLive ? 'ACTIVE TRADE' : 'DRAFT MODE'}
-              </Label>
-            </div>
+
+          <div className="flex items-center gap-3 overflow-x-auto pb-1 no-scrollbar flex-1 justify-center max-w-2xl">
+            {trades.map((t, idx) => (
+              <div
+                key={t.id}
+                onClick={() => setActiveId(t.id!)}
+                className={`relative group flex items-center gap-2 px-4 py-1.5 rounded-full border cursor-pointer transition-all whitespace-nowrap ${activeId === t.id
+                    ? 'bg-primary text-primary-foreground border-primary shadow-lg scale-105'
+                    : 'bg-secondary/20 border-border hover:bg-secondary/40'
+                  }`}
+              >
+                <span className="text-xs font-bold uppercase">{t.symbol} #{idx + 1}</span>
+                <button
+                  onClick={(e) => deleteTrade(t.id!, e)}
+                  className={`hover:bg-red-500/20 p-0.5 rounded-full transition-colors ${activeId === t.id ? 'text-primary-foreground/70 hover:text-white' : 'text-muted-foreground'}`}
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </div>
+            ))}
             <Button
+              onClick={addTrade}
               variant="outline"
               size="sm"
-              onClick={handleReset}
-              data-testid="button-reset"
+              className="rounded-full h-8 w-8 p-0 flex-shrink-0 border-dashed hover:border-solid"
             >
-              <RotateCcw className="w-4 h-4 mr-1.5" />
+              <Plus className="w-4 h-4" />
+            </Button>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <div className="flex items-center space-x-2 bg-secondary/30 px-3 py-1.5 rounded-full border border-border">
+              <Switch id="live-mode" checked={isLive} onCheckedChange={setIsLive} />
+              <Label htmlFor="live-mode" className="cursor-pointer text-xs font-bold uppercase tracking-wider">
+                {isLive ? 'ACTIVE' : 'DRAFT'}
+              </Label>
+            </div>
+            <Button variant="ghost" size="sm" onClick={handleReset} className="h-8 hover:bg-destructive/10 hover:text-destructive">
+              <RotateCcw className="w-3.5 h-3.5 mr-1" />
               Reset
             </Button>
           </div>
         </div>
       </header>
+
       <main className="container mx-auto px-4 py-8">
         <div className="grid lg:grid-cols-2 gap-8 items-start">
           <div className="space-y-4">
-            <PnlForm data={pnlData} onChange={setPnlData} isLive={isLive} />
+            <PnlForm data={activeTrade} onChange={updateActiveTrade} isLive={isLive} />
           </div>
 
           <div className="lg:sticky lg:top-24 space-y-4">
             <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-foreground">Preview</h2>
+              <h2 className="text-lg font-semibold text-foreground">Performance Card</h2>
               <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleCopyToClipboard}
-                  disabled={isExporting}
-                  data-testid="button-copy"
-                >
+                <Button variant="outline" size="sm" onClick={handleCopyToClipboard} disabled={isExporting}>
                   <Image className="w-4 h-4 mr-1.5" />
                   Copy
                 </Button>
-                <Button
-                  size="sm"
-                  onClick={handleExport}
-                  disabled={isExporting}
-                  data-testid="button-download"
-                >
+                <Button size="sm" onClick={handleExport} disabled={isExporting}>
                   <Download className="w-4 h-4 mr-1.5" />
                   {isExporting ? "Exporting..." : "Download"}
                 </Button>
@@ -314,31 +402,21 @@ export default function Home() {
             </div>
 
             <div className="space-y-4">
-              <div>
-                <p className="text-xs text-muted-foreground mb-2 text-center">Your PNL</p>
-                <div className="flex justify-center p-4 bg-[#0B0E11] rounded-lg border border-border overflow-x-auto">
-                  <div ref={cardRef} className="shrink-0">
-                    <PnlCard data={pnlData} />
-                  </div>
+              <div className="flex justify-center p-6 bg-[#0B0E11] rounded-2xl border border-border shadow-2xl">
+                <div ref={cardRef} className="shrink-0">
+                  <PnlCard data={activeTrade} />
                 </div>
               </div>
 
-              <div>
-                <p className="text-xs text-muted-foreground mb-2 text-center">Reference (Short)</p>
-                <img
-                  src="/ref/IMG_0244_1769433702851.JPG"
-                  alt="Reference Short"
-                  className="rounded-lg border border-border w-full max-w-[480px] mx-auto block"
-                />
-              </div>
-
-              <div>
-                <p className="text-xs text-muted-foreground mb-2 text-center">Reference (Long)</p>
-                <img
-                  src="/ref/IMG_5589_1769433702855.JPG"
-                  alt="Reference Long"
-                  className="rounded-lg border border-border w-full max-w-[480px] mx-auto block"
-                />
+              <div className="grid grid-cols-2 gap-4">
+                <div className="opacity-40 hover:opacity-100 transition-opacity">
+                  <p className="text-[10px] font-bold uppercase text-center mb-2">Ref Short</p>
+                  <img src="/ref/IMG_0244_1769433702851.JPG" className="rounded-xl border border-border" />
+                </div>
+                <div className="opacity-40 hover:opacity-100 transition-opacity">
+                  <p className="text-[10px] font-bold uppercase text-center mb-2">Ref Long</p>
+                  <img src="/ref/IMG_5589_1769433702855.JPG" className="rounded-xl border border-border" />
+                </div>
               </div>
             </div>
           </div>

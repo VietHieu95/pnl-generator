@@ -18,6 +18,7 @@ export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 
 export const pnlDataSchema = z.object({
+  id: z.string().optional(),
   symbol: z.string().default("BTCUSDT"),
   type: z.enum(["Perp", "Quarterly"]).default("Perp"),
   marginMode: z.enum(["Cross", "Isolated"]).default("Cross"),
