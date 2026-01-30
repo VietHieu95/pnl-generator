@@ -76,18 +76,11 @@ export default function Home() {
     const streams = uniqueSymbols.map(s => `${s}@ticker`).join('/');
     const ws = new WebSocket(`wss://fstream.binance.com/stream?streams=${streams}`);
 
-    ws.onopen = () => {
-      toast({
-        title: "Live Data Connected",
-        description: `Streaming prices for ${uniqueSymbols.join(', ').toUpperCase()} from Binance...`,
-      });
-    };
-
     ws.onerror = (error) => {
       console.error("WebSocket error:", error);
       toast({
-        title: "Connection Failed",
-        description: `Could not connect to Binance Futures for some symbols. Check names.`,
+        title: "Connection Error",
+        description: "Check your internet or symbol names.",
         variant: "destructive",
       });
     };
@@ -95,7 +88,7 @@ export default function Home() {
     ws.onmessage = (event) => {
       const msg = JSON.parse(event.data);
       if (msg.data && msg.data.e === '24hrTicker') {
-        const symbol = msg.data.s; // Symbol name like 'BTCUSDT'
+        const symbol = msg.data.s;
         const price = parseFloat(msg.data.c);
 
         setTrades(prev => prev.map(t => {
@@ -107,13 +100,7 @@ export default function Home() {
       }
     };
 
-    return () => {
-      ws.close();
-      toast({
-        title: "Live Data Disconnected",
-        description: "Stopped streaming prices.",
-      });
-    };
+    return () => ws.close();
   }, [isLive, JSON.stringify(trades.map(t => t.symbol)), toast]); // Re-run if isLive changes or symbols change
 
   // Automatic calculations for all trades
@@ -319,39 +306,59 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-background font-medium text-[17px]">
-      <header className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-50">
-        <div className="container mx-auto px-4 py-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center">
-              <span className="text-sm font-bold text-primary-foreground">B</span>
-            </div>
-            <div>
-              <h1 className="text-lg font-semibold text-foreground tracking-tight">PNL Generator PRO</h1>
-              <div className="flex items-center gap-2">
-                <div className={`w-1.5 h-1.5 rounded-full ${isLive ? 'bg-green-500 animate-pulse' : 'bg-muted-foreground'}`} />
-                <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest">
-                  {isLive ? 'Live Exchange Hub' : 'Offline Engine'}
-                </p>
+      <header className="border-b border-border bg-[#0B0E11]/80 backdrop-blur-md sticky top-0 z-50">
+        <div className="container mx-auto px-3 py-3 space-y-3">
+          {/* Top Row: Logo & Controls */}
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <div className="w-7 h-7 rounded-sm bg-primary flex items-center justify-center shrink-0">
+                <span className="text-xs font-bold text-primary-foreground">B</span>
               </div>
+              <h1 className="text-sm font-bold text-foreground tracking-tight hidden xs:block">PNL PRO</h1>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <div className="flex items-center space-x-2 bg-secondary/30 px-2 py-1 rounded-full border border-border/50">
+                <Switch
+                  id="live-mode"
+                  checked={isLive}
+                  onCheckedChange={setIsLive}
+                  className="scale-75"
+                />
+                <Label htmlFor="live-mode" className="cursor-pointer text-[10px] font-black uppercase tracking-tighter">
+                  {isLive ? 'ACTIVE' : 'DRAFT'}
+                </Label>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleReset}
+                className="h-7 px-2 text-[10px] uppercase font-bold text-muted-foreground hover:bg-destructive/10"
+              >
+                <RotateCcw className="w-3 h-3 mr-1" />
+                Reset
+              </Button>
             </div>
           </div>
 
-          <div className="flex items-center gap-3 overflow-x-auto pb-1 no-scrollbar flex-1 justify-center max-w-2xl">
+          {/* Bottom Row: Trade Selection (Scrollable) */}
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar -mx-1 px-1">
             {trades.map((t, idx) => (
               <div
                 key={t.id}
                 onClick={() => setActiveId(t.id!)}
-                className={`relative group flex items-center gap-2 px-4 py-1.5 rounded-full border cursor-pointer transition-all whitespace-nowrap ${activeId === t.id
-                    ? 'bg-primary text-primary-foreground border-primary shadow-lg scale-105'
-                    : 'bg-secondary/20 border-border hover:bg-secondary/40'
+                className={`relative group flex items-center gap-1.5 px-3 py-1.5 rounded-md border text-[11px] font-bold uppercase transition-all whitespace-nowrap overflow-hidden ${activeId === t.id
+                    ? 'bg-primary text-primary-foreground border-primary shadow-[0_0_15px_rgba(243,186,47,0.2)]'
+                    : 'bg-secondary/10 border-border/40 text-muted-foreground hover:border-border'
                   }`}
               >
-                <span className="text-xs font-bold uppercase">{t.symbol} #{idx + 1}</span>
+                <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${activeId === t.id ? 'bg-primary-foreground' : 'bg-muted-foreground/30'}`} />
+                {t.symbol}
                 <button
                   onClick={(e) => deleteTrade(t.id!, e)}
-                  className={`hover:bg-red-500/20 p-0.5 rounded-full transition-colors ${activeId === t.id ? 'text-primary-foreground/70 hover:text-white' : 'text-muted-foreground'}`}
+                  className={`ml-1 hover:bg-black/20 rounded-full p-0.5 transition-colors ${activeId === t.id ? 'opacity-100' : 'opacity-0 stroke-1 group-hover:opacity-100'}`}
                 >
-                  <X className="w-3 h-3" />
+                  <X className="w-2.5 h-2.5" />
                 </button>
               </div>
             ))}
@@ -359,22 +366,9 @@ export default function Home() {
               onClick={addTrade}
               variant="outline"
               size="sm"
-              className="rounded-full h-8 w-8 p-0 flex-shrink-0 border-dashed hover:border-solid"
+              className="rounded-md h-7 w-7 p-0 shrink-0 border-dashed bg-transparent border-border/50"
             >
-              <Plus className="w-4 h-4" />
-            </Button>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <div className="flex items-center space-x-2 bg-secondary/30 px-3 py-1.5 rounded-full border border-border">
-              <Switch id="live-mode" checked={isLive} onCheckedChange={setIsLive} />
-              <Label htmlFor="live-mode" className="cursor-pointer text-xs font-bold uppercase tracking-wider">
-                {isLive ? 'ACTIVE' : 'DRAFT'}
-              </Label>
-            </div>
-            <Button variant="ghost" size="sm" onClick={handleReset} className="h-8 hover:bg-destructive/10 hover:text-destructive">
-              <RotateCcw className="w-3.5 h-3.5 mr-1" />
-              Reset
+              <Plus className="w-3.5 h-4 text-muted-foreground" />
             </Button>
           </div>
         </div>
