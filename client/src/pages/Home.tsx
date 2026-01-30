@@ -31,11 +31,22 @@ const defaultPnlData: PnlData = {
 };
 
 export default function Home() {
-  const [pnlData, setPnlData] = useState<PnlData>(defaultPnlData);
+  const [pnlData, setPnlData] = useState<PnlData>(() => {
+    const saved = localStorage.getItem("pnlData");
+    return saved ? JSON.parse(saved) : defaultPnlData;
+  });
   const [isExporting, setIsExporting] = useState(false);
-  const [isLive, setIsLive] = useState(false);
+  const [isLive, setIsLive] = useState(() => {
+    return localStorage.getItem("isLive") === "true";
+  });
   const cardRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
+
+  // Save state to localStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem("pnlData", JSON.stringify(pnlData));
+    localStorage.setItem("isLive", isLive.toString());
+  }, [pnlData, isLive]);
 
   useEffect(() => {
     if (!isLive) return;
@@ -62,30 +73,10 @@ export default function Home() {
       const data = JSON.parse(event.data);
       if (data.e === '24hrTicker') {
         const price = parseFloat(data.c); // 'c' is the Last Price
-
-        setPnlData(prev => {
-          const direction = prev.positionType === 'Long' ? 1 : -1;
-          const pnl = (price - prev.entryPrice) * prev.size * direction;
-
-          // Force Margin to stay in sync with Entry, Size, and Leverage
-          const initialMargin = (prev.entryPrice * prev.size) / (prev.leverage || 1);
-          const roi = (pnl / initialMargin) * 100;
-
-          // Calculate Margin Ratio automatically (using 0.4% as a standard maintenance margin rate)
-          const positionValue = prev.entryPrice * prev.size;
-          const maintenanceMargin = positionValue * 0.004;
-          const marginBalance = prev.walletBalance + pnl;
-          const marginRatio = marginBalance <= 0 ? 100 : (maintenanceMargin / marginBalance) * 100;
-
-          return {
-            ...prev,
-            markPrice: price,
-            unrealizedPnl: Number(pnl.toFixed(2)),
-            roi: Number(roi.toFixed(2)),
-            margin: Number(initialMargin.toFixed(2)),
-            marginRatio: Number(Math.max(0, Math.min(marginRatio, 100)).toFixed(2))
-          };
-        });
+        setPnlData(prev => ({
+          ...prev,
+          markPrice: price
+        }));
       }
     };
 
@@ -94,36 +85,63 @@ export default function Home() {
     };
   }, [isLive, pnlData.symbol, toast]);
 
-  // Handle instant updates when inputs change during live mode
+  // Handle instant updates and automatic calculations
   useEffect(() => {
-    if (!isLive || !pnlData.markPrice) return;
+    // We only automate everything if we have entryPrice and size
+    if (!pnlData.entryPrice || !pnlData.size) return;
+
+    // Use current markPrice (live) or if not live, it can still use the last markPrice value
+    const currentPrice = pnlData.markPrice || pnlData.entryPrice;
+
+    // Determine the actual position value based on unit
+    // If unit is USDT, size is already the position value (Notional)
+    // If unit is Coin (BTC, ETH, etc.), position value = entryPrice * size
+    const isUnitUsdt = pnlData.sizeUnit?.toUpperCase() === 'USDT';
+    const positionValue = isUnitUsdt ? pnlData.size : pnlData.entryPrice * pnlData.size;
+    const sizeInCoin = isUnitUsdt ? pnlData.size / pnlData.entryPrice : pnlData.size;
 
     const direction = pnlData.positionType === 'Long' ? 1 : -1;
-    const pnl = (pnlData.markPrice - pnlData.entryPrice) * pnlData.size * direction;
-    const initialMargin = (pnlData.entryPrice * pnlData.size) / (pnlData.leverage || 1);
+    const pnl = (currentPrice - pnlData.entryPrice) * sizeInCoin * direction;
+    const initialMargin = positionValue / (pnlData.leverage || 1);
     const roi = (pnl / initialMargin) * 100;
 
-    const positionValue = pnlData.entryPrice * pnlData.size;
-    const maintenanceMargin = positionValue * 0.004;
+    const maintenanceMargin = positionValue * 0.004; // Standard 0.4% MMR
     const marginBalance = pnlData.walletBalance + pnl;
     const marginRatio = marginBalance <= 0 ? 100 : (maintenanceMargin / marginBalance) * 100;
 
-    // Update if derived values are out of sync with current inputs
-    if (
+    // Standard Binance Liquidation Price formula (simplified)
+    const liqPrice = pnlData.positionType === 'Long'
+      ? pnlData.entryPrice * (1 - (1 / pnlData.leverage) + 0.004)
+      : pnlData.entryPrice * (1 + (1 / pnlData.leverage) - 0.004);
+
+    // Update state if any calculated value differs significantly
+    const shouldUpdate =
       Math.abs(pnl - pnlData.unrealizedPnl) > 0.01 ||
       Math.abs(roi - pnlData.roi) > 0.01 ||
-      Math.abs(initialMargin - pnlData.margin) > 0.1 ||
-      Math.abs(marginRatio - pnlData.marginRatio) > 0.01
-    ) {
+      Math.abs(initialMargin - pnlData.margin) > 0.01 ||
+      Math.abs(marginRatio - pnlData.marginRatio) > 0.01 ||
+      Math.abs(liqPrice - pnlData.liqPrice) > 0.01;
+
+    if (shouldUpdate) {
       setPnlData(prev => ({
         ...prev,
         unrealizedPnl: Number(pnl.toFixed(2)),
         roi: Number(roi.toFixed(2)),
         margin: Number(initialMargin.toFixed(2)),
-        marginRatio: Number(Math.max(0, Math.min(marginRatio, 100)).toFixed(2))
+        marginRatio: Number(Math.max(0, Math.min(marginRatio, 100)).toFixed(2)),
+        liqPrice: Number(liqPrice.toFixed(2))
       }));
     }
-  }, [isLive, pnlData.markPrice, pnlData.entryPrice, pnlData.size, pnlData.positionType, pnlData.leverage, pnlData.walletBalance]);
+  }, [
+    isLive,
+    pnlData.markPrice,
+    pnlData.entryPrice,
+    pnlData.size,
+    pnlData.sizeUnit,
+    pnlData.positionType,
+    pnlData.leverage,
+    pnlData.walletBalance
+  ]);
 
   const handleExport = useCallback(async () => {
     if (!cardRef.current) return;
@@ -237,13 +255,16 @@ export default function Home() {
             </div>
           </div>
           <div className="flex items-center gap-4">
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center space-x-2 bg-secondary/30 px-3 py-1.5 rounded-full border border-border">
+              <div className={`w-2 h-2 rounded-full ${isLive ? 'bg-green-500 animate-pulse' : 'bg-muted-foreground'}`} />
               <Switch
                 id="live-mode"
                 checked={isLive}
                 onCheckedChange={setIsLive}
               />
-              <Label htmlFor="live-mode">Live Data</Label>
+              <Label htmlFor="live-mode" className="cursor-pointer text-sm font-semibold">
+                {isLive ? 'ACTIVE TRADE' : 'DRAFT MODE'}
+              </Label>
             </div>
             <Button
               variant="outline"

@@ -171,7 +171,10 @@ export function PnlForm({ data, onChange, isLive = false }: PnlFormProps) {
 
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label htmlFor="unrealizedPnl" className="text-muted-foreground text-sm">Unrealized PNL (USDT)</Label>
+            <Label htmlFor="unrealizedPnl" className="text-muted-foreground text-sm flex justify-between">
+              Unrealized PNL (USDT)
+              <span className="text-[10px] bg-primary/20 text-primary px-1 rounded">Auto</span>
+            </Label>
             <Input
               id="unrealizedPnl"
               data-testid="input-pnl"
@@ -179,13 +182,16 @@ export function PnlForm({ data, onChange, isLive = false }: PnlFormProps) {
               step="0.01"
               value={data.unrealizedPnl}
               onChange={(e) => handleNumberChange("unrealizedPnl", e.target.value)}
-              className="bg-muted border-input"
-              disabled={isLive}
+              className="bg-muted/50 border-input opacity-80"
+              disabled={true}
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="roi" className="text-muted-foreground text-sm">ROI (%)</Label>
+            <Label htmlFor="roi" className="text-muted-foreground text-sm flex justify-between">
+              ROI (%)
+              <span className="text-[10px] bg-primary/20 text-primary px-1 rounded">Auto</span>
+            </Label>
             <Input
               id="roi"
               data-testid="input-roi"
@@ -193,8 +199,8 @@ export function PnlForm({ data, onChange, isLive = false }: PnlFormProps) {
               step="0.01"
               value={data.roi}
               onChange={(e) => handleNumberChange("roi", e.target.value)}
-              className="bg-muted border-input"
-              disabled={isLive}
+              className="bg-muted/50 border-input opacity-80"
+              disabled={true}
             />
           </div>
         </div>
@@ -204,7 +210,7 @@ export function PnlForm({ data, onChange, isLive = false }: PnlFormProps) {
         <h4 className="text-sm font-medium text-foreground mb-3">Position Details</h4>
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label htmlFor="size" className="text-muted-foreground text-sm">Size</Label>
+            <Label htmlFor="size" className="text-muted-foreground text-sm">Size (Amount)</Label>
             <Input
               id="size"
               data-testid="input-size"
@@ -217,7 +223,10 @@ export function PnlForm({ data, onChange, isLive = false }: PnlFormProps) {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="margin" className="text-muted-foreground text-sm">Margin (USDT)</Label>
+            <Label htmlFor="margin" className="text-muted-foreground text-sm flex justify-between">
+              Margin (Initial)
+              <span className="text-[10px] bg-primary/20 text-primary px-1 rounded">Auto</span>
+            </Label>
             <Input
               id="margin"
               data-testid="input-margin"
@@ -225,12 +234,16 @@ export function PnlForm({ data, onChange, isLive = false }: PnlFormProps) {
               step="0.01"
               value={data.margin}
               onChange={(e) => handleNumberChange("margin", e.target.value)}
-              className="bg-muted border-input"
+              className="bg-muted/50 border-input opacity-80"
+              disabled={true}
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="marginRatio" className="text-muted-foreground text-sm">Margin Ratio (%)</Label>
+            <Label htmlFor="marginRatio" className="text-muted-foreground text-sm flex justify-between">
+              Margin Ratio (%)
+              <span className="text-[10px] bg-primary/20 text-primary px-1 rounded">Auto</span>
+            </Label>
             <Input
               id="marginRatio"
               data-testid="input-margin-ratio"
@@ -238,7 +251,8 @@ export function PnlForm({ data, onChange, isLive = false }: PnlFormProps) {
               step="0.01"
               value={data.marginRatio}
               onChange={(e) => handleNumberChange("marginRatio", e.target.value)}
-              className="bg-muted border-input"
+              className="bg-muted/50 border-input opacity-80"
+              disabled={true}
             />
           </div>
 
@@ -253,7 +267,6 @@ export function PnlForm({ data, onChange, isLive = false }: PnlFormProps) {
               onChange={(e) => handleNumberChange("walletBalance", e.target.value)}
               className="bg-muted border-primary/30 border-2 font-bold"
             />
-            <p className="text-[10px] text-muted-foreground">Used for automatic Margin Ratio calculation</p>
           </div>
         </div>
       </div>
@@ -275,7 +288,10 @@ export function PnlForm({ data, onChange, isLive = false }: PnlFormProps) {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="markPrice" className="text-muted-foreground text-sm">Mark Price (USDT)</Label>
+            <Label htmlFor="markPrice" className="text-muted-foreground text-sm flex justify-between">
+              Mark Price (Live)
+              <span className="text-[10px] bg-primary/20 text-primary px-1 rounded">Auto</span>
+            </Label>
             <Input
               id="markPrice"
               data-testid="input-mark-price"
@@ -283,13 +299,16 @@ export function PnlForm({ data, onChange, isLive = false }: PnlFormProps) {
               step="0.01"
               value={data.markPrice}
               onChange={(e) => handleNumberChange("markPrice", e.target.value)}
-              className="bg-muted border-input"
-              disabled={isLive}
+              className="bg-muted/50 border-input opacity-80"
+              disabled={true}
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="liqPrice" className="text-muted-foreground text-sm">Liq. Price (USDT)</Label>
+            <Label htmlFor="liqPrice" className="text-muted-foreground text-sm flex justify-between">
+              Liq. Price (USDT)
+              <span className="text-[10px] bg-primary/20 text-primary px-1 rounded">Auto</span>
+            </Label>
             <Input
               id="liqPrice"
               data-testid="input-liq-price"
@@ -297,7 +316,8 @@ export function PnlForm({ data, onChange, isLive = false }: PnlFormProps) {
               step="0.01"
               value={data.liqPrice}
               onChange={(e) => handleNumberChange("liqPrice", e.target.value)}
-              className="bg-muted border-input"
+              className="bg-muted/50 border-input opacity-80"
+              disabled={true}
             />
           </div>
         </div>
