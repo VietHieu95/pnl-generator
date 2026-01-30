@@ -1,0 +1,72 @@
+Selected Element (Selector: .py-\[16px\].border-0.border-b-\[1px\].border-solid.border-Line.\[\&\:last-of-type\]\:border-none.bg-BasicBg, UID: 15457):
+
+Display: block
+Position: static (This means it's positioned according to the normal flow of the document.)
+Dimensions:
+width: 507.328px
+height: 286px
+Background: rgb(24, 26, 32) (This corresponds to var(--color-BasicBg) in the authored styles, suggesting a dark background.)
+Box Model: box-sizing: border-box (Padding and border are included in the element's total width and height.)
+Padding: The class py-[16px] suggests a vertical padding of 16px, but it's not explicitly present in the computed styles.
+Border: The classes border-0.border-b-[1px].border-solid.border-Line indicate no border initially, but a 1px solid bottom border with the color border-Line (likely a variable) is applied. The [&last-of-type]:border-none class means the bottom border is removed for the last element of this type.
+Child Elements:
+
+The selected element has 6 child element nodes. Here's a summary of their key layout properties:
+
+Child 1 (Selector: .flex.mb-\[12px\].items-center.justify-between, UID: 15450):
+Display: flex
+Flex Direction: row (items are arranged horizontally)
+Alignment:
+align-items: center (items are vertically centered)
+justify-content: space-between (items are distributed with space between them)
+Dimensions:
+width: 507.328px
+height: 24px
+Box Model: box-sizing: border-box
+Margin: mb-[12px] indicates a bottom margin of 12px.
+Child 2 (Selector: .flex.justify-between.mb-\[8px\], UID: 15451):
+Display: flex
+Flex Direction: row
+Alignment:
+align-items: normal
+justify-content: space-between
+Dimensions:
+width: 507.328px
+height: 42px
+Box Model: box-sizing: border-box
+Margin: mb-[8px] indicates a bottom margin of 8px.
+Child 3 (Selector: .grid.grid-cols-3.gap-\[8px\].mb-\[8px\], UID: 15452):
+Display: grid (This element uses CSS Grid layout.)
+Dimensions:
+width: 507.328px
+height: 42px
+Box Model: box-sizing: border-box
+Grid: grid-cols-3 indicates 3 columns, and gap-[8px] suggests an 8px gap between grid items.
+Margin: mb-[8px] indicates a bottom margin of 8px.
+Child 4 (Selector: .grid.grid-cols-3.gap-\[8px\], UID: 15453):
+Display: grid
+Dimensions:
+width: 507.328px
+height: 42px
+Box Model: box-sizing: border-box
+Grid: grid-cols-3 indicates 3 columns, and gap-[8px] suggests an 8px gap between grid items.
+Child 5 (Selector: .flex.items-center.mt-\[8px\].gap-\[8px\], UID: 15454):
+Display: flex
+Flex Direction: row
+Alignment:
+align-items: center
+justify-content: normal
+Dimensions:
+width: 507.328px
+height: 24px
+Box Model: box-sizing: border-box
+Margin: mt-[8px] indicates a top margin of 8px.
+Gap: gap-[8px] suggests an 8px gap between flex items.
+Child 6 (Selector: .grid.grid-cols-3.gap-\[6px\].mt-\[12px\], UID: 15455):
+Display: grid
+Dimensions:
+width: 507.328px
+height: 32px
+Box Model: box-sizing: border-box
+Grid: grid-cols-3 indicates 3 columns, and gap-[6px] suggests a 6px gap between grid items.
+Margin: mt-[12px] indicates a top margin of 12px.

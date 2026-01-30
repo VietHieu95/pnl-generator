@@ -1,0 +1,95 @@
+{
+  "colorScheme": "dark",
+  "fonts": [
+    {
+      "family": "BinanceNova",
+      "count": 12
+    },
+    {
+      "family": "Arial",
+      "count": 12
+    },
+    {
+      "family": "sans-serif",
+      "count": 12
+    }
+  ],
+  "colors": {
+    "primary": "#FCD535",
+    "accent": "#F0B90B",
+    "background": "#181A20",
+    "textPrimary": "#181A20",
+    "link": "#F0B90B"
+  },
+  "typography": {
+    "fontFamilies": {
+      "primary": "BinanceNova",
+      "heading": "BinanceNova"
+    },
+    "fontStacks": {
+      "body": [
+        "BinanceNova",
+        "Arial",
+        "sans-serif"
+      ],
+      "heading": [
+        "BinanceNova",
+        "Arial",
+        "sans-serif"
+      ],
+      "paragraph": [
+        "BinanceNova",
+        "Arial",
+        "sans-serif"
+      ]
+    },
+    "fontSizes": {
+      "h1": "14px",
+      "h2": "14px",
+      "body": "14px"
+    }
+  },
+  "spacing": {
+    "baseUnit": 4,
+    "borderRadius": "8px"
+  },
+  "components": {
+    "input": {
+      "background": "transparent",
+      "textColor": "#EAECEF",
+      "borderColor": null,
+      "borderRadius": "0px",
+      "borderRadiusCorners": {
+        "topLeft": "0px",
+        "topRight": "0px",
+        "bottomRight": "0px",
+        "bottomLeft": "0px"
+      },
+      "shadow": "none"
+    }
+  },
+  "images": {
+    "logo": null,
+    "favicon": "File saved at: attached_assets/favicon.ico",
+    "ogImage": "File saved at: attached_assets/ogImage.jpg"
+  },
+  "__framework_hints": [],
+  "__llm_button_reasoning": {
+    "primary": {
+      "index": -1,
+      "text": "N/A",
+      "reasoning": "LLM failed"
+    },
+    "secondary": {
+      "index": -1,
+      "text": "N/A",
+      "reasoning": "LLM failed"
+    },
+    "confidence": 0
+  },
+  "confidence": {
+    "buttons": 0,
+    "colors": 0,
+    "overall": 0
+  }
+}
