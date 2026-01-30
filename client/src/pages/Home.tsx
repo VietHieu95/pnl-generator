@@ -129,9 +129,26 @@ export default function Home() {
       const marginRatio = marginBalance <= 0 ? 100 : (maintenanceMargin / marginBalance) * 100;
 
       // Standard Binance Liquidation Price formula (simplified)
-      const liqPrice = t.positionType === 'Long'
-        ? t.entryPrice * (1 - (1 / t.leverage) + 0.004)
-        : t.entryPrice * (1 + (1 / t.leverage) - 0.004);
+      // Dynamic Liquidation Price based on Margin Mode
+      let liqPrice = 0;
+      if (t.marginMode === 'Cross') {
+        // Cross Margin: Liq Price depends on total Wallet Balance
+        // Formula: Entry * (1 - (Balance / NotionalValue) + MMR)
+        const mmr = 0.004; // 0.4% maintenance margin
+        if (t.positionType === 'Long') {
+          liqPrice = t.entryPrice * (1 - (t.walletBalance / positionValue) + mmr);
+        } else {
+          liqPrice = t.entryPrice * (1 + (t.walletBalance / positionValue) - mmr);
+        }
+      } else {
+        // Isolated Margin: Liq Price depends only on Leverage
+        liqPrice = t.positionType === 'Long'
+          ? t.entryPrice * (1 - (1 / t.leverage) + 0.004)
+          : t.entryPrice * (1 + (1 / t.leverage) - 0.004);
+      }
+
+      // Ensure Liq Price doesn't go below 0
+      liqPrice = Math.max(0, liqPrice);
 
       // Check if we need to update to avoid infinite loop
       // Compare with existing values, using 0 if undefined
@@ -348,8 +365,8 @@ export default function Home() {
                 key={t.id}
                 onClick={() => setActiveId(t.id!)}
                 className={`relative group flex items-center gap-1.5 px-3 py-1.5 rounded-md border text-[11px] font-bold uppercase transition-all whitespace-nowrap overflow-hidden ${activeId === t.id
-                    ? 'bg-primary text-primary-foreground border-primary shadow-[0_0_15px_rgba(243,186,47,0.2)]'
-                    : 'bg-secondary/10 border-border/40 text-muted-foreground hover:border-border'
+                  ? 'bg-primary text-primary-foreground border-primary shadow-[0_0_15px_rgba(243,186,47,0.2)]'
+                  : 'bg-secondary/10 border-border/40 text-muted-foreground hover:border-border'
                   }`}
               >
                 <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${activeId === t.id ? 'bg-primary-foreground' : 'bg-muted-foreground/30'}`} />
