@@ -289,18 +289,18 @@ export function PnlForm({ data, onChange, isLive = false }: PnlFormProps) {
 
           <div className="space-y-2">
             <Label htmlFor="markPrice" className="text-muted-foreground text-sm flex justify-between">
-              Mark Price (Live)
-              <span className="text-[10px] bg-primary/20 text-primary px-1 rounded">Auto</span>
+              Mark Price {isLive ? '(Live)' : '(Manual)'}
+              {isLive && <span className="text-[10px] bg-primary/20 text-primary px-1 rounded">Auto</span>}
             </Label>
             <Input
               id="markPrice"
               data-testid="input-mark-price"
               type="number"
-              step="0.01"
+              step="0.0001"
               value={data.markPrice}
               onChange={(e) => handleNumberChange("markPrice", e.target.value)}
-              className="bg-muted/50 border-input opacity-80"
-              disabled={true}
+              className={isLive ? "bg-muted/50 border-input opacity-80" : "bg-muted border-input"}
+              disabled={isLive}
             />
           </div>
 
