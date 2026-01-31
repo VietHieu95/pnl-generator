@@ -38,12 +38,12 @@ export function PnlForm({ data, onChange, isLive = false }: PnlFormProps) {
           <Input
             value={data.symbol}
             onChange={(e) => {
-              const newSymbol = e.target.value;
+              const newSymbol = e.target.value.toUpperCase();
               let newUnit = data.sizeUnit;
-              if (newSymbol.toUpperCase().endsWith("USDT")) {
-                newUnit = newSymbol.toUpperCase().replace("USDT", "");
-              } else if (newSymbol.toUpperCase().endsWith("BUSD")) {
-                newUnit = newSymbol.toUpperCase().replace("BUSD", "");
+              if (newSymbol.endsWith("USDT")) {
+                newUnit = newSymbol.replace("USDT", "");
+              } else if (newSymbol.endsWith("BUSD")) {
+                newUnit = newSymbol.replace("BUSD", "");
               }
               onChange({ ...data, symbol: newSymbol, sizeUnit: newUnit });
             }}
