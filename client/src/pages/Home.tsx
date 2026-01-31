@@ -413,15 +413,23 @@ export default function Home() {
             <div className="space-y-6 w-full min-w-0">
               <div className="w-full overflow-hidden p-3 bg-gradient-to-b from-[#1E2329] to-[#0B0E11] rounded-[1.5rem] border border-white/5 shadow-2xl">
                 {/* 
-                  CRITICAL FIX: Using CSS zoom instead of transform scale
-                  zoom actually affects layout size, preventing overflow
+                  Scale wrapper: Uses transform scale with layout compensation
+                  The outer div constrains the visual size while inner transform scales the content
                 */}
-                <div className="w-full flex justify-center" style={{ zoom: '0.85' }}>
-                  <div ref={cardRef}>
+                <div className="w-full flex justify-center">
+                  <div
+                    ref={cardRef}
+                    className="origin-top"
+                    style={{
+                      transform: 'scale(0.9)',
+                      transformOrigin: 'top center'
+                    }}
+                  >
                     <PnlCard data={activeTrade} />
                   </div>
                 </div>
               </div>
+
 
               <div className="grid grid-cols-2 gap-3 opacity-40 w-full min-w-0">
                 <div className="space-y-1 min-w-0">
