@@ -419,17 +419,24 @@ export default function Home() {
                 */}
                 <div className="w-full flex justify-center">
                   <div
-                    ref={cardRef}
                     className="origin-top"
                     style={{
                       transform: 'scale(0.75)',
                       transformOrigin: 'top center'
                     }}
                   >
-                    <PnlCard data={activeTrade} />
+                    {/* 
+                      Ref is now on an UNSCALED inner div.
+                      This prevents modern-screenshot from capturing the whitespace 
+                      caused by the parent's scale transform.
+                    */}
+                    <div ref={cardRef} className="shrink-0">
+                      <PnlCard data={activeTrade} />
+                    </div>
                   </div>
                 </div>
               </div>
+
 
 
 
