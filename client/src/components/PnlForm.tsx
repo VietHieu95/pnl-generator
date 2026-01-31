@@ -191,10 +191,20 @@ export function PnlForm({ data, onChange, isLive = false }: PnlFormProps) {
               }
             </Label>
             <Input
+              type="number"
               value={data[field.id as keyof PnlData] ?? ''}
+              onChange={(e) => {
+                // Only allow editing for 'size' field
+                if (field.id === 'size') {
+                  handleNumberChange(field.id, e.target.value);
+                }
+              }}
               disabled={["unrealizedPnl", "roi", "margin", "liqPrice", "marginRatio"].includes(field.id)}
-              className="h-7 bg-transparent border-transparent text-[11px] font-bold p-0 px-1 disabled:opacity-80"
-              readOnly
+              className={`h-7 bg-transparent border-transparent text-[11px] font-bold p-0 px-1 ${field.id === 'size'
+                  ? 'cursor-text hover:bg-white/5 focus:bg-white/10'
+                  : 'disabled:opacity-80 cursor-not-allowed'
+                }`}
+              readOnly={field.id !== 'size'}
             />
           </div>
         ))}
