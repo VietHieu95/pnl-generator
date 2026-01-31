@@ -23,12 +23,7 @@ export function PnlForm({ data, onChange, isLive = false }: PnlFormProps) {
     }
   };
 
-  const presets = [
-    { label: "Profit +50%", pnl: 1500, roi: 50 },
-    { label: "Profit +100%", pnl: 3000, roi: 100 },
-    { label: "Loss -30%", pnl: -900, roi: -30 },
-    { label: "Loss -50%", pnl: -1500, roi: -50 },
-  ];
+
 
   return (
     <div className="w-full overflow-hidden space-y-4 p-3 md:p-5 bg-white/2 rounded-2xl border border-white/5 shadow-xl backdrop-blur-sm">
@@ -105,25 +100,6 @@ export function PnlForm({ data, onChange, isLive = false }: PnlFormProps) {
         </div>
       </div>
 
-      <div className="space-y-3 pt-2">
-        <div className="flex items-center justify-between px-1">
-          <h4 className="text-[10px] font-black text-muted-foreground/60 uppercase tracking-widest">Growth Presets</h4>
-        </div>
-        <div className="grid grid-cols-4 gap-2">
-          {presets.map((preset) => (
-            <Button
-              key={preset.label}
-              variant="outline"
-              size="sm"
-              onClick={() => onChange({ ...data, unrealizedPnl: preset.pnl, roi: preset.roi })}
-              className={`h-8 text-[9px] font-black border-white/5 bg-white/3 hover:border-primary/50 hover:bg-primary/5 transition-all px-0 ${preset.label.includes('+') ? 'text-green-500' : 'text-red-500'
-                }`}
-            >
-              {preset.label.replace('Profit ', '').replace('Loss ', '')}
-            </Button>
-          ))}
-        </div>
-      </div>
 
       <div className="grid grid-cols-2 gap-x-4 gap-y-3 border-t border-white/5 pt-4 w-full min-w-0">
         <div className="space-y-1.5">
@@ -201,8 +177,8 @@ export function PnlForm({ data, onChange, isLive = false }: PnlFormProps) {
               }}
               disabled={["unrealizedPnl", "roi", "margin", "liqPrice", "marginRatio"].includes(field.id)}
               className={`h-7 bg-transparent border-transparent text-[11px] font-bold p-0 px-1 ${field.id === 'size'
-                  ? 'cursor-text hover:bg-white/5 focus:bg-white/10'
-                  : 'disabled:opacity-80 cursor-not-allowed'
+                ? 'cursor-text hover:bg-white/5 focus:bg-white/10'
+                : 'disabled:opacity-80 cursor-not-allowed'
                 }`}
               readOnly={field.id !== 'size'}
             />
