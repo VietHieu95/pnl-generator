@@ -78,7 +78,7 @@ export function PnlCard({ data }: PnlCardProps) {
             </span>
             <span className="tracking-tight font-normal text-[17px] flex">
               {[1, 2, 3, 4].map((i) => (
-                <span key={i} className={i <= data.signalBars ? (data.positionType === "Long" ? "text-[#0ECB81]" : "text-[#F6465D]") : "text-[#3a3f47]"}>!</span>
+                <span key={i} style={{ color: i <= data.signalBars ? '#0ECB81' : '#3a3f47' }}>!</span>
               ))}
             </span>
           </div>
