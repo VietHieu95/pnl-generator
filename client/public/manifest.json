@@ -1,0 +1,41 @@
+{
+    "name": "PNL Generator",
+    "short_name": "PNL Gen",
+    "description": "Professional Binance-style PNL card generator for crypto trading",
+    "start_url": "/",
+    "display": "standalone",
+    "background_color": "#0B0E11",
+    "theme_color": "#F0B90B",
+    "orientation": "portrait-primary",
+    "icons": [
+        {
+            "src": "/icons/icon-192x192.png",
+            "sizes": "192x192",
+            "type": "image/png",
+            "purpose": "any maskable"
+        },
+        {
+            "src": "/icons/icon-512x512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "any maskable"
+        },
+        {
+            "src": "/icons/apple-touch-icon.png",
+            "sizes": "180x180",
+            "type": "image/png"
+        }
+    ],
+    "categories": [
+        "finance",
+        "utilities",
+        "productivity"
+    ],
+    "screenshots": [
+        {
+            "src": "/screenshot.png",
+            "sizes": "1080x1920",
+            "type": "image/png"
+        }
+    ]
+}
