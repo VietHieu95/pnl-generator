@@ -31,14 +31,14 @@ export function PnlForm({ data, onChange, isLive = false }: PnlFormProps) {
   ];
 
   return (
-    <div className="space-y-4 p-3 md:p-5 bg-white/2 rounded-2xl border border-white/5 shadow-xl backdrop-blur-sm">
+    <div className="w-full overflow-hidden space-y-4 p-3 md:p-5 bg-white/2 rounded-2xl border border-white/5 shadow-xl backdrop-blur-sm">
       <div className="flex items-center justify-between px-1">
         <h3 className="text-[11px] font-black text-muted-foreground/60 uppercase tracking-[0.2em]">Position Settings</h3>
         <span className="text-[9px] bg-primary/10 text-primary px-2 py-0.5 rounded-full font-bold">MODE: {data.type}</span>
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
-        <div className="space-y-1.5">
+      <div className="grid grid-cols-2 gap-3 w-full min-w-0">
+        <div className="space-y-1.5 min-w-0">
           <Label className="text-muted-foreground text-[10px] font-bold uppercase tracking-tight ml-1">Symbol</Label>
           <Input
             value={data.symbol}
@@ -56,7 +56,7 @@ export function PnlForm({ data, onChange, isLive = false }: PnlFormProps) {
           />
         </div>
 
-        <div className="space-y-1.5">
+        <div className="space-y-1.5 min-w-0">
           <Label className="text-muted-foreground text-[10px] font-bold uppercase tracking-tight ml-1">Size Unit</Label>
           <Input
             value={data.sizeUnit}
@@ -67,7 +67,7 @@ export function PnlForm({ data, onChange, isLive = false }: PnlFormProps) {
         </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-2">
+      <div className="grid grid-cols-3 gap-2 w-full min-w-0">
         <div className="space-y-1.5">
           <Label className="text-muted-foreground text-[10px] font-bold uppercase tracking-tight ml-1">Margin</Label>
           <Select value={data.marginMode} onValueChange={(v) => handleFieldChange("marginMode", v as any)}>
@@ -125,7 +125,7 @@ export function PnlForm({ data, onChange, isLive = false }: PnlFormProps) {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-x-4 gap-y-3 border-t border-white/5 pt-4">
+      <div className="grid grid-cols-2 gap-x-4 gap-y-3 border-t border-white/5 pt-4 w-full min-w-0">
         <div className="space-y-1.5">
           <Label className="text-[10px] font-bold text-muted-foreground uppercase flex justify-between items-center ml-1">
             Leverage
@@ -174,7 +174,7 @@ export function PnlForm({ data, onChange, isLive = false }: PnlFormProps) {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 border-t border-white/5 pt-4">
+      <div className="grid grid-cols-2 gap-3 border-t border-white/5 pt-4 w-full min-w-0">
         {[
           { id: "unrealizedPnl", label: "Unrealized PNL" },
           { id: "roi", label: "ROI (%)" },
@@ -200,7 +200,7 @@ export function PnlForm({ data, onChange, isLive = false }: PnlFormProps) {
         ))}
       </div>
 
-      <div className="grid grid-cols-2 gap-3 border-t border-white/5 pt-4 pb-2">
+      <div className="grid grid-cols-2 gap-3 border-t border-white/5 pt-4 pb-2 w-full min-w-0">
         <div className="space-y-1.5">
           <Label className="text-[10px] font-bold text-muted-foreground/60 uppercase ml-1">Take Profit</Label>
           <Input
