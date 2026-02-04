@@ -10,6 +10,11 @@ export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
+  // Health check for cron jobs
+  app.get("/api/health", (_req, res) => {
+    res.json({ status: "ok", timestamp: new Date().toISOString() });
+  });
+
   // PNL Data Routes
   app.get("/api/pnl", async (req, res) => {
     try {
