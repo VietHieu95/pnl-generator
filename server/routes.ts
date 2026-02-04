@@ -4,6 +4,7 @@ import { storage } from "./storage";
 import { pnlDataSchema } from "@shared/schema";
 import { calculatePnlValues } from "@shared/calculations";
 import puppeteer from "puppeteer";
+import { getBrowser } from "./browser";
 
 export async function registerRoutes(
   httpServer: Server,
@@ -32,29 +33,20 @@ export async function registerRoutes(
 
   // PNL Image Export Route
   app.get("/api/pnl/image", async (req, res) => {
-    let browser;
+    let page;
     try {
       const port = process.env.PORT || 3000;
-      browser = await puppeteer.launch({
-        args: [
-          "--no-sandbox",
-          "--disable-setuid-sandbox",
-          "--disable-dev-shm-usage",
-          "--disable-accelerated-2d-canvas",
-          "--no-first-run",
-          "--no-zygote",
-          "--disable-gpu",
-        ],
-        headless: true,
-      });
-      const page = await browser.newPage();
+      const browser = await getBrowser();
+      page = await browser.newPage();
 
       // Set viewport size suitable for the card
       await page.setViewport({ width: 1000, height: 1000, deviceScaleFactor: 2 });
 
       // Navigate to the isolated card page
-      // Use 127.0.0.1 instead of localhost
-      const url = `http://127.0.0.1:${port}/isolated-card`;
+      // Append query parameters to the URL to enable stateless generation
+      const urlParams = new URLSearchParams(req.query as any).toString();
+      const url = `http://127.0.0.1:${port}/isolated-card${urlParams ? `?${urlParams}` : ""}`;
+
       try {
         await page.goto(url, {
           waitUntil: "domcontentloaded",
@@ -62,7 +54,6 @@ export async function registerRoutes(
         });
 
         // Wait for the card container to be visible
-        // We give it more time for the React app to hydrate and fetch data
         const selector = "#pnl-card-container";
         await page.waitForSelector(selector, { timeout: 30000 });
 
@@ -88,8 +79,8 @@ export async function registerRoutes(
       console.error("Image generation error:", error);
       res.status(500).json({ message: "Failed to generate image", error: error.message });
     } finally {
-      if (browser) {
-        await browser.close();
+      if (page) {
+        await page.close();
       }
     }
   });

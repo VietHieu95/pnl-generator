@@ -31,14 +31,14 @@ export function PnlCard({ data }: PnlCardProps) {
     const parts = text.split(",");
     if (parts.length === 2) {
       return (
-        <>
-          <span style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Inter", sans-serif' }}>{parts[0]}</span>
-          <span style={{ fontFamily: "'IBM Plex Sans', sans-serif", fontSize: '0.85em' }}>,</span>
-          <span style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Inter", sans-serif' }}>{parts[1]}</span>
-        </>
+        <span className="inline-flex items-baseline">
+          <span className="font-semibold">{parts[0]}</span>
+          <span className="font-normal text-[0.8em] mx-[1px]">,</span>
+          <span className="font-semibold">{parts[1]}</span>
+        </span>
       );
     }
-    return <span style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Inter", sans-serif' }}>{text}</span>;
+    return <span className="font-semibold">{text}</span>;
   };
 
   const formatPnl = (pnl: number) => {
@@ -53,136 +53,115 @@ export function PnlCard({ data }: PnlCardProps) {
 
   return (
     <div
-      className="w-[480px] h-[280px] bg-[#202630] py-4 box-border"
-      style={{ fontFamily: '"Inter", "SF Pro Display", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif', fontFeatureSettings: '"tnum"' }}
+      className="w-[480px] h-[280px] bg-[#1E2329] py-4 box-border relative overflow-hidden"
+      style={{ fontFamily: '"Inter", sans-serif', fontFeatureSettings: '"tnum" 1' }}
       data-testid="pnl-card"
     >
-      <div className="flex items-center justify-between mb-3 h-6 px-4">
+      <div className="flex items-center justify-between mb-4 h-6 px-4">
         <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1.5 slice-badge">
             <div className={`w-[18px] h-[18px] rounded-[3px] flex items-center justify-center ${data.positionType === "Short" ? "bg-[#F6465D]" : "bg-[#0ECB81]"}`}>
-              <span className="text-white text-[13px] font-medium">
+              <span className="text-white text-[12px] font-bold">
                 {data.positionType === "Short" ? "S" : "B"}
               </span>
             </div>
-            <span className="text-white text-[17px] font-normal" data-testid="text-symbol">
+            <span className="text-[#EAECEF] text-[16px] font-bold tracking-tight" data-testid="text-symbol">
               {data.symbol}
             </span>
           </div>
-          <div className="flex items-center gap-0.5">
-            <span className="text-xs px-1.5 py-0.5 rounded bg-[#2b3139] text-[#e6ecf3] font-normal">
+          <div className="flex items-center gap-1">
+            <span className="text-[11px] px-1.5 py-0.5 rounded-[2px] bg-[#2B3139] text-[#929AA5] font-medium">
               {data.type}
             </span>
-            <span className="text-xs py-0.5 bg-[#2B3139] rounded text-[#e6ecf3] px-1.5 font-normal">
+            <span className="text-[11px] py-0.5 bg-[#2B3139] rounded-[2px] text-[#F0B90B] px-1.5 font-medium">
               {data.marginMode} {data.leverage}X
             </span>
-            <span className="tracking-tight font-normal text-[17px] flex">
+            <span className="tracking-[-2px] font-bold text-[18px] flex ml-0.5">
               {[1, 2, 3, 4].map((i) => (
                 <span key={i} style={{ color: i <= data.signalBars ? '#0ECB81' : '#3a3f47' }}>!</span>
               ))}
             </span>
           </div>
         </div>
-        <button className="text-[#848E9C] hover:text-white transition-colors" data-testid="button-share">
-          <Share2 style={{ width: '20px', height: '20px' }} />
+        <button className="text-[#848E9C]" data-testid="button-share">
+          <Share2 size={18} />
         </button>
       </div>
-      <div className="mb-1 px-4">
+
+      <div className="mb-2 px-4">
         <div className="flex justify-between">
-          <div>
-            <div className="text-[#848E9C] text-[12px] leading-tight">PNL (USDT)</div>
-            <div className="text-[#4A5568] text-[4px] tracking-[0.5px] leading-none">•••••••••••••••••••••••••</div>
-            <div className={`${data.unrealizedPnl >= 0 ? "text-[#2bbe84]" : "text-[#f6465d]"} font-bold font-sans text-[19px]`} data-testid="text-pnl">
+          <div className="flex-1">
+            <div className="text-[#848E9C] text-[12px] font-medium mb-0.5">PNL (USDT)</div>
+            <div className="text-[#4A5568] text-[2px] tracking-[2px] mb-1 opacity-40 uppercase">••••••••••••••••••••••••••••••••••••••••</div>
+            <div className={`${data.unrealizedPnl >= 0 ? "text-[#0ECB81]" : "text-[#F6465D]"} text-[24px] leading-tight`} data-testid="text-pnl">
               {renderNumberWithStyledComma(formatPnl(data.unrealizedPnl))}
             </div>
           </div>
           <div className="text-right">
-            <div className="text-[#848E9C] text-[12px] leading-tight">ROI</div>
-            <div className="text-[#4A5568] text-[4px] tracking-[0.5px] leading-none">••••••••</div>
-            <div className={`${data.roi >= 0 ? "text-[#2bbe84]" : "text-[#f6465d]"} font-bold font-sans text-[19px]`} data-testid="text-roi">
+            <div className="text-[#848E9C] text-[12px] font-medium mb-0.5">ROI</div>
+            <div className="text-[#4A5568] text-[2px] tracking-[2px] mb-1 opacity-40 uppercase">•••••••••••••</div>
+            <div className={`${data.roi >= 0 ? "text-[#0ECB81]" : "text-[#F6465D]"} text-[24px] leading-tight`} data-testid="text-roi">
               {renderNumberWithStyledComma(formatRoi(data.roi))}
             </div>
           </div>
         </div>
       </div>
-      <div className="grid grid-cols-3 gap-2 mb-1 px-4 mt-2">
+
+      <div className="grid grid-cols-3 gap-4 mb-3 px-4 mt-4">
         <div>
-          <div className="text-[#848E9C] flex items-center gap-1 text-[12px] leading-tight">
+          <div className="text-[#848E9C] text-[11px] font-medium flex items-center gap-1 mb-1">
             Size ({data.sizeUnit})
-            <div
-              style={{
-                backgroundColor: '#858e9c',
-                WebkitMaskImage: 'url(/swap-icon.png)',
-                maskImage: 'url(/swap-icon.png)',
-                WebkitMaskSize: 'contain',
-                maskSize: 'contain',
-                WebkitMaskRepeat: 'no-repeat',
-                maskRepeat: 'no-repeat',
-                width: '19px',
-                height: '19px'
-              }}
-              className="ml-0 translate-y-[1px]"
-            />
+            <div className="w-[14px] h-[14px] bg-[#848E9C]" style={{ maskImage: 'url(/swap-icon.png)', maskSize: 'contain', maskRepeat: 'no-repeat' }} />
           </div>
-          <div className="font-normal text-[#e8edf2] text-[15px] mt-0.5" data-testid="text-size">
+          <div className="font-semibold text-[#EAECEF] text-[14px]" data-testid="text-size">
             {renderNumberWithStyledComma(formatPrice(data.size))}
           </div>
         </div>
         <div>
-          <div className="text-[#848E9C] text-[12px] leading-tight">Margin (USDT)</div>
-          <div className="font-normal text-[#e8edf2] text-[15px] mt-0.5" data-testid="text-margin">
+          <div className="text-[#848E9C] text-[11px] font-medium mb-1">Margin (USDT)</div>
+          <div className="font-semibold text-[#EAECEF] text-[14px]" data-testid="text-margin">
             {renderNumberWithStyledComma(formatPrice(data.margin))}
           </div>
         </div>
         <div className="text-right">
-          <div className="text-[#848E9C] text-[12px] leading-tight">Margin Ratio</div>
-          <div className="text-[#4A5568] text-[4px] tracking-[0.5px] leading-none">••••••••••••••••••••••••••</div>
-          <div className="font-normal text-[#3aba8b] text-[15px]" data-testid="text-margin-ratio">
-            {renderNumberWithStyledComma(formatNumber(data.marginRatio, 2))}%
+          <div className="text-[#848E9C] text-[11px] font-medium mb-1">Margin Ratio</div>
+          <div className="font-semibold text-[#0ECB81] text-[14px]" data-testid="text-margin-ratio">
+            {formatNumber(data.marginRatio, 2)}%
           </div>
         </div>
       </div>
-      <div className="grid grid-cols-3 gap-2 px-4 mt-1">
+
+      <div className="grid grid-cols-3 gap-4 px-4">
         <div>
-          <div className="text-[#848E9C] text-[12px] leading-tight">Entry Price (USDT)</div>
-          <div className="text-[#4A5568] text-[4px] tracking-[0.5px] leading-none">•••••••••••••••••••••••••••••••••••••••••</div>
-          <div className="font-normal text-[#e8edf2] text-[15px]" data-testid="text-entry-price">
-            {renderNumberWithStyledComma(formatPrice(data.entryPrice))}
+          <div className="text-[#848E9C] text-[11px] font-medium mb-1">Entry Price</div>
+          <div className="font-semibold text-[#EAECEF] text-[14px]" data-testid="text-entry-price">
+            {formatPrice(data.entryPrice)}
           </div>
         </div>
         <div>
-          <div className="text-[#848E9C] text-[12px] leading-tight">Mark Price (USDT)</div>
-          <div className="font-normal text-[#e8edf2] text-[15px] mt-1" data-testid="text-mark-price">
-            {renderNumberWithStyledComma(formatPrice(data.markPrice))}
+          <div className="text-[#848E9C] text-[11px] font-medium mb-1">Mark Price</div>
+          <div className="font-semibold text-[#EAECEF] text-[14px]" data-testid="text-mark-price">
+            {formatPrice(data.markPrice)}
           </div>
         </div>
         <div className="text-right">
-          <div className="text-[#848E9C] text-[12px] leading-tight">Liq.Price (USDT)</div>
-          <div className="text-[#4A5568] text-[4px] tracking-[0.5px] leading-none">••••••••••••••••••••••••••••••••••••</div>
-          <div className="font-normal text-[#e8edf2] text-[15px]" data-testid="text-liq-price">
-            {renderNumberWithStyledComma(formatPrice(data.liqPrice))}
+          <div className="text-[#848E9C] text-[11px] font-medium mb-1">Liq.Price</div>
+          <div className="font-semibold text-[#EAECEF] text-[14px]" data-testid="text-liq-price">
+            {formatPrice(data.liqPrice)}
           </div>
         </div>
       </div>
-      <div className="grid grid-cols-3 gap-2 mt-3 h-9 px-4">
-        <button
-          className="font-medium rounded-lg hover:bg-[#363C45] transition-colors text-[#e6ecf3] text-[12px] bg-[#323b47]"
-          data-testid="button-leverage"
-        >
+
+      <div className="grid grid-cols-3 gap-2 mt-4 h-8 px-4">
+        <div className="flex items-center justify-center rounded-[4px] text-[#EAECEF] text-[11px] bg-[#2B3139] font-medium uppercase tracking-tight">
           Leverage
-        </button>
-        <button
-          className="font-medium rounded-lg hover:bg-[#363C45] transition-colors text-[#e6ecf3] text-[12px] bg-[#323b47]"
-          data-testid="button-tpsl"
-        >
+        </div>
+        <div className="flex items-center justify-center rounded-[4px] text-[#EAECEF] text-[11px] bg-[#2B3139] font-medium uppercase tracking-tight">
           TP/SL
-        </button>
-        <button
-          className="font-medium rounded-lg hover:bg-[#363C45] transition-colors text-[#e6ecf3] text-[12px] bg-[#323b47]"
-          data-testid="button-close"
-        >
+        </div>
+        <div className="flex items-center justify-center rounded-[4px] text-[#EAECEF] text-[11px] bg-[#2B3139] font-medium uppercase tracking-tight">
           Close
-        </button>
+        </div>
       </div>
     </div>
   );

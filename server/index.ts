@@ -59,6 +59,8 @@ app.use((req, res, next) => {
   next();
 });
 
+import { getBrowser, closeBrowser } from "./browser";
+
 (async () => {
   await registerRoutes(httpServer, app);
 
@@ -90,6 +92,12 @@ app.use((req, res, next) => {
   // this serves both the API and the client.
   // It is the only port that is not firewalled.
   const port = parseInt(process.env.PORT || "3000", 10);
+
+  // Pre-initialize browser in production to speed up first request
+  if (process.env.NODE_ENV === "production") {
+    getBrowser().catch(err => console.error("Initial browser launch failed", err));
+  }
+
   httpServer.listen(
     {
       port,
@@ -99,4 +107,14 @@ app.use((req, res, next) => {
       log(`serving on port ${port}`);
     },
   );
+
+  // Graceful shutdown
+  const shutdown = async () => {
+    log("Server shutting down...");
+    await closeBrowser();
+    process.exit(0);
+  };
+
+  process.on("SIGINT", shutdown);
+  process.on("SIGTERM", shutdown);
 })();
