@@ -36,7 +36,15 @@ export async function registerRoutes(
     try {
       const port = process.env.PORT || 3000;
       browser = await puppeteer.launch({
-        args: ["--no-sandbox", "--disable-setuid-sandbox"],
+        args: [
+          "--no-sandbox",
+          "--disable-setuid-sandbox",
+          "--disable-dev-shm-usage",
+          "--disable-accelerated-2d-canvas",
+          "--no-first-run",
+          "--no-zygote",
+          "--disable-gpu",
+        ],
         headless: true,
       });
       const page = await browser.newPage();
@@ -45,35 +53,37 @@ export async function registerRoutes(
       await page.setViewport({ width: 1000, height: 1000, deviceScaleFactor: 2 });
 
       // Navigate to the isolated card page
-      // Use 127.0.0.1 instead of localhost for better compatibility in containers
-      await page.goto(`http://127.0.0.1:${port}/isolated-card`, {
-        waitUntil: "networkidle0",
-        timeout: 60000,
-      });
-
-      // Wait for the card container to be visible
-      const selector = "#pnl-card-container";
+      // Use 127.0.0.1 instead of localhost
+      const url = `http://127.0.0.1:${port}/isolated-card`;
       try {
-        await page.waitForSelector(selector, { timeout: 10000 });
-      } catch (e) {
+        await page.goto(url, {
+          waitUntil: "domcontentloaded",
+          timeout: 60000,
+        });
+
+        // Wait for the card container to be visible
+        // We give it more time for the React app to hydrate and fetch data
+        const selector = "#pnl-card-container";
+        await page.waitForSelector(selector, { timeout: 30000 });
+
+        // Extract the element's bounding box to crop accurately
+        const element = await page.$(selector);
+        if (!element) {
+          throw new Error("Card container element is null");
+        }
+
+        const imageBuffer = await element.screenshot({
+          type: "png",
+          omitBackground: true,
+        });
+
+        res.set("Content-Type", "image/png");
+        res.send(imageBuffer);
+      } catch (pageError: any) {
         const content = await page.content();
-        console.error("Content at failure:", content.substring(0, 1000));
-        throw new Error(`Selector ${selector} not found. Page title: ${await page.title()}`);
+        console.error("Page content at error:", content.substring(0, 500));
+        throw pageError;
       }
-
-      // Extract the element's bounding box to crop accurately
-      const element = await page.$(selector);
-      if (!element) {
-        throw new Error("Card container not found after waiting");
-      }
-
-      const imageBuffer = await element.screenshot({
-        type: "png",
-        omitBackground: true,
-      });
-
-      res.set("Content-Type", "image/png");
-      res.send(imageBuffer);
     } catch (error: any) {
       console.error("Image generation error:", error);
       res.status(500).json({ message: "Failed to generate image", error: error.message });
