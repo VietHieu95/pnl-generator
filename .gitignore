@@ -7,4 +7,5 @@ vite.config.ts.*
 .agent/
 .local/
 Inter-4.1/
-.env
+.env*.png
+.dockerignore

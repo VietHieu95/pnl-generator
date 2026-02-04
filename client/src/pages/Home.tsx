@@ -5,12 +5,15 @@ import { PnlForm } from "@/components/PnlForm";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Download, Image, RotateCcw, Plus, X } from "lucide-react"; // Added Plus and X for UI
+import { Download, Image, RotateCcw, Plus, X, Activity } from "lucide-react"; // Changed CloudSync to Activity
 import { domToPng, domToBlob } from "modern-screenshot";
 import { useToast } from "@/hooks/use-toast";
+import { calculatePnlValues } from "@shared/calculations";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
 
 const defaultPnlData: PnlData = {
-  id: Math.random().toString(36).substring(7), // Add a unique ID for each trade
+  id: Math.random().toString(36).substring(7),
   symbol: "BTCUSDT",
   type: "Perp",
   marginMode: "Cross",
@@ -32,10 +35,28 @@ const defaultPnlData: PnlData = {
 };
 
 export default function Home() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  // Sync with Server for AI Agent features
+  const { data: serverPnl, isLoading: isServerLoading } = useQuery<PnlData>({
+    queryKey: ["/api/pnl"],
+    refetchInterval: 5000, // Optional: auto-refresh every 5 seconds to see AI updates
+  });
+
+  const updateServerPnl = useMutation({
+    mutationFn: async (data: Partial<PnlData>) => {
+      const res = await apiRequest("POST", "/api/pnl", data);
+      return res.json();
+    },
+    onSuccess: (data) => {
+      queryClient.setQueryData(["/api/pnl"], data);
+    },
+  });
+
   const [trades, setTrades] = useState<PnlData[]>(() => {
     const saved = localStorage.getItem("trades");
     const parsedTrades = saved ? JSON.parse(saved) : [defaultPnlData];
-    // Ensure all trades have an ID, assign one if missing
     return parsedTrades.map((trade: PnlData) => ({
       ...trade,
       id: trade.id || Math.random().toString(36).substring(7),
@@ -54,10 +75,25 @@ export default function Home() {
   });
 
   const cardRef = useRef<HTMLDivElement>(null);
-  const { toast } = useToast();
 
   // Derive the active trade
   const activeTrade = trades.find(t => t.id === activeId) || trades[0];
+
+  // Sync server data to local active trade if it's newer or if user wants it
+  useEffect(() => {
+    if (serverPnl) {
+      // For now, let's just make the server data available as a special "AI Trade" or update active
+      // Setting active trade to what's on server if it was changed by AI
+      setTrades(prev => prev.map(t => {
+        if (t.id === activeId) {
+          // Compare certain fields to see if server has priority (e.g. AI updated it)
+          // For simplicity, we can add a manual "Sync" button or auto-sync
+          return { ...t, ...serverPnl, id: t.id };
+        }
+        return t;
+      }));
+    }
+  }, [serverPnl, activeId]);
 
   // Save state to localStorage whenever it changes
   useEffect(() => {
@@ -71,19 +107,10 @@ export default function Home() {
     if (!isLive || trades.length === 0) return;
 
     const uniqueSymbols = Array.from(new Set(trades.map(t => t.symbol.toLowerCase())));
-    if (uniqueSymbols.length === 0) return; // No symbols to subscribe to
+    if (uniqueSymbols.length === 0) return;
 
     const streams = uniqueSymbols.map(s => `${s}@ticker`).join('/');
     const ws = new WebSocket(`wss://fstream.binance.com/stream?streams=${streams}`);
-
-    ws.onerror = (error) => {
-      console.error("WebSocket error:", error);
-      toast({
-        title: "Connection Error",
-        description: "Check your internet or symbol names.",
-        variant: "destructive",
-      });
-    };
 
     ws.onmessage = (event) => {
       const msg = JSON.parse(event.data);
@@ -101,91 +128,30 @@ export default function Home() {
     };
 
     return () => ws.close();
-  }, [isLive, JSON.stringify(trades.map(t => t.symbol)), toast]); // Re-run if isLive changes or symbols change
+  }, [isLive, JSON.stringify(trades.map(t => t.symbol)), toast]);
 
-  // Automatic calculations for all trades
+  // Automatic calculations for all trades using shared utility
   useEffect(() => {
     const updatedTrades = trades.map(t => {
-      // We only automate everything if we have entryPrice and size
-      if (!t.entryPrice || !t.size) return t;
-
-      // Use current markPrice (live) or if not live, it can still use the last markPrice value
-      const currentPrice = t.markPrice || t.entryPrice;
-
-      // Determine the actual position value based on unit
-      // If unit is USDT, size is already the position value (Notional)
-      // If unit is Coin (BTC, ETH, etc.), position value = entryPrice * size
-      const isUnitUsdt = t.sizeUnit?.toUpperCase() === 'USDT';
-      const positionValue = isUnitUsdt ? t.size : t.entryPrice * t.size;
-      const sizeInCoin = isUnitUsdt ? t.size / t.entryPrice : t.size;
-
-      const direction = t.positionType === 'Long' ? 1 : -1;
-      const pnl = (currentPrice - t.entryPrice) * sizeInCoin * direction;
-      const initialMargin = positionValue / (t.leverage || 1);
-      const roi = (pnl / initialMargin) * 100;
-
-      const maintenanceMargin = positionValue * 0.004; // Standard 0.4% MMR
-      const marginBalance = t.walletBalance + pnl;
-      const marginRatio = marginBalance <= 0 ? 100 : (maintenanceMargin / marginBalance) * 100;
-
-      // Standard Binance Liquidation Price formula (simplified)
-      // Dynamic Liquidation Price based on Margin Mode
-      let liqPrice = 0;
-      if (t.marginMode === 'Cross') {
-        // Cross Margin: Liq Price depends on total Wallet Balance
-        // Formula: Entry * (1 - (Balance / NotionalValue) + MMR)
-        const mmr = 0.004; // 0.4% maintenance margin
-        if (t.positionType === 'Long') {
-          liqPrice = t.entryPrice * (1 - (t.walletBalance / positionValue) + mmr);
-        } else {
-          liqPrice = t.entryPrice * (1 + (t.walletBalance / positionValue) - mmr);
-        }
-      } else {
-        // Isolated Margin: Liq Price depends only on Leverage
-        liqPrice = t.positionType === 'Long'
-          ? t.entryPrice * (1 - (1 / t.leverage) + 0.004)
-          : t.entryPrice * (1 + (1 / t.leverage) - 0.004);
-      }
-
-      // Ensure Liq Price doesn't go below 0
-      liqPrice = Math.max(0, liqPrice);
+      const calculated = calculatePnlValues(t);
 
       // Check if we need to update to avoid infinite loop
-      // Compare with existing values, using 0 if undefined
       if (
-        Math.abs(pnl - (t.unrealizedPnl || 0)) > 0.01 ||
-        Math.abs(roi - (t.roi || 0)) > 0.01 ||
-        Math.abs(initialMargin - (t.margin || 0)) > 0.01 ||
-        Math.abs(marginRatio - (t.marginRatio || 0)) > 0.01 ||
-        Math.abs(liqPrice - (t.liqPrice || 0)) > 0.01
+        Math.abs((calculated.unrealizedPnl || 0) - (t.unrealizedPnl || 0)) > 0.01 ||
+        Math.abs((calculated.roi || 0) - (t.roi || 0)) > 0.01 ||
+        Math.abs((calculated.margin || 0) - (t.margin || 0)) > 0.01 ||
+        Math.abs((calculated.marginRatio || 0) - (t.marginRatio || 0)) > 0.01 ||
+        Math.abs((calculated.liqPrice || 0) - (t.liqPrice || 0)) > 0.01
       ) {
-        return {
-          ...t,
-          unrealizedPnl: Number(pnl.toFixed(2)),
-          roi: Number(roi.toFixed(2)),
-          margin: Number(initialMargin.toFixed(2)),
-          marginRatio: Number(Math.max(0, Math.min(marginRatio, 100)).toFixed(2)),
-          liqPrice: Number(liqPrice.toFixed(2))
-        };
+        return { ...t, ...calculated };
       }
       return t;
     });
 
-    // Only update state if any trade actually changed to prevent unnecessary re-renders
-    // Deep comparison is needed here, but for simplicity, we'll check if the array reference changed
-    // A more robust solution might involve a custom equality check or use-deep-compare-effect
-    // For now, we'll rely on the fact that `map` creates new objects only if values change.
-    // If no trade objects were modified, `updatedTrades` will contain the same objects as `trades`.
-    // However, `setTrades` will still trigger a re-render if the array reference changes.
-    // A simple JSON.stringify comparison can work for small, non-circular objects.
     if (JSON.stringify(updatedTrades) !== JSON.stringify(trades)) {
       setTrades(updatedTrades);
     }
-  }, [
-    trades, // Depend on the entire trades array to trigger recalculations
-    // Specific properties that might change and affect calculations
-    // (though `trades` dependency covers this, explicit listing can sometimes help clarity or specific optimizations)
-  ]);
+  }, [trades]);
 
   const addTrade = () => {
     const newTrade = {
@@ -217,6 +183,8 @@ export default function Home() {
 
   const updateActiveTrade = (data: PnlData) => {
     setTrades(prev => prev.map(t => t.id === activeId ? data : t));
+    // Sync to server for AI Agent
+    updateServerPnl.mutate(data);
   };
 
   const handleExport = useCallback(async () => {
@@ -332,6 +300,12 @@ export default function Home() {
                 <span className="text-[10px] font-black text-primary-foreground italic">B</span>
               </div>
               <h1 className="text-xs font-black text-foreground tracking-tighter uppercase">PNL PRO</h1>
+              {serverPnl && (
+                <div className="flex items-center gap-1 ml-2 px-2 py-0.5 rounded bg-blue-500/10 border border-blue-500/20">
+                  <Activity className="w-3 h-3 text-blue-400 animate-pulse" />
+                  <span className="text-[8px] font-bold text-blue-400 uppercase tracking-tighter">AI Agent Connected</span>
+                </div>
+              )}
             </div>
 
             <div className="flex items-center gap-2">
