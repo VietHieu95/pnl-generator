@@ -7,24 +7,21 @@ interface PnlCardProps {
 
 export function PnlCard({ data }: PnlCardProps) {
   const formatNumber = (num: number, decimals: number = 1) => {
-    const formatted = num.toLocaleString("de-DE", {
+    return new Intl.NumberFormat("de-DE", {
       minimumFractionDigits: decimals,
       maximumFractionDigits: decimals,
-    });
-    return formatted;
+    }).format(num);
   };
 
   const formatPrice = (num: number) => {
     const parts = num.toString().split(".");
     let decimalPlaces = parts[1]?.length || 1;
-    // Cap decimal places at 2 for prices > 1 to match common trading UI
     if (num > 1 && decimalPlaces > 2) decimalPlaces = 2;
 
-    const formatted = num.toLocaleString("de-DE", {
+    return new Intl.NumberFormat("de-DE", {
       minimumFractionDigits: decimalPlaces,
       maximumFractionDigits: decimalPlaces,
-    });
-    return formatted;
+    }).format(num);
   };
 
   const renderNumberWithStyledComma = (text: string) => {

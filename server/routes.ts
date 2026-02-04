@@ -44,8 +44,8 @@ export async function registerRoutes(
       const browser = await getBrowser();
       page = await browser.newPage();
 
-      // Set viewport size suitable for the card
-      await page.setViewport({ width: 1000, height: 1000, deviceScaleFactor: 2 });
+      // Set high resolution viewport (4x for maximum sharpness to match web export)
+      await page.setViewport({ width: 480, height: 280, deviceScaleFactor: 4 });
 
       // Navigate to the isolated card page
       // Append query parameters to the URL to enable stateless generation
@@ -54,7 +54,7 @@ export async function registerRoutes(
 
       try {
         await page.goto(url, {
-          waitUntil: "domcontentloaded",
+          waitUntil: "networkidle0",
           timeout: 60000,
         });
 
