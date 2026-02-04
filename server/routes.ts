@@ -45,19 +45,26 @@ export async function registerRoutes(
       await page.setViewport({ width: 1000, height: 1000, deviceScaleFactor: 2 });
 
       // Navigate to the isolated card page
-      await page.goto(`http://localhost:${port}/isolated-card`, {
+      // Use 127.0.0.1 instead of localhost for better compatibility in containers
+      await page.goto(`http://127.0.0.1:${port}/isolated-card`, {
         waitUntil: "networkidle0",
-        timeout: 30000,
+        timeout: 60000,
       });
 
       // Wait for the card container to be visible
       const selector = "#pnl-card-container";
-      await page.waitForSelector(selector);
+      try {
+        await page.waitForSelector(selector, { timeout: 10000 });
+      } catch (e) {
+        const content = await page.content();
+        console.error("Content at failure:", content.substring(0, 1000));
+        throw new Error(`Selector ${selector} not found. Page title: ${await page.title()}`);
+      }
 
       // Extract the element's bounding box to crop accurately
       const element = await page.$(selector);
       if (!element) {
-        throw new Error("Card container not found");
+        throw new Error("Card container not found after waiting");
       }
 
       const imageBuffer = await element.screenshot({
