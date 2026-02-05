@@ -238,6 +238,16 @@ export default function Home() {
   const handleCopyToClipboard = useCallback(async () => {
     if (!cardRef.current) return;
 
+    // Feature detection
+    if (!navigator.clipboard || !navigator.clipboard.write) {
+      toast({
+        title: "Not Supported",
+        description: "Your browser does not support copying images to clipboard. Please use Download instead.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsExporting(true);
     try {
       const blob = await domToBlob(cardRef.current, {
@@ -255,20 +265,31 @@ export default function Home() {
         },
       });
 
-      if (blob) {
-        await navigator.clipboard.write([
-          new ClipboardItem({ "image/png": blob }),
-        ]);
-        toast({
-          title: "Copied to clipboard!",
-          description: "You can now paste the image anywhere.",
-        });
+      if (!blob) {
+        throw new Error("Failed to generate image.");
       }
-    } catch (error) {
+
+      await navigator.clipboard.write([
+        new ClipboardItem({ [blob.type]: blob }),
+      ]);
+
+      toast({
+        title: "Copied to clipboard!",
+        description: "You can now paste the image anywhere.",
+      });
+    } catch (error: any) {
       console.error("Copy error:", error);
+
+      let errorMessage = "Could not copy to clipboard.";
+      if (error.name === "NotAllowedError") {
+        errorMessage = "Permission denied. Please allow clipboard access.";
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+
       toast({
         title: "Copy failed",
-        description: "Could not copy to clipboard. Try downloading instead.",
+        description: errorMessage + " Try downloading instead.",
         variant: "destructive",
       });
     } finally {
