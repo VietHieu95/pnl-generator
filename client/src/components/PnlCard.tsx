@@ -116,7 +116,8 @@ export function PnlCard({ data }: PnlCardProps) {
                 WebkitMaskRepeat: 'no-repeat',
                 maskRepeat: 'no-repeat',
                 width: '19px',
-                height: '19px'
+                height: '19px',
+                backgroundRepeat: 'no-repeat'
               }}
               className="ml-0 translate-y-[1px]"
             />
