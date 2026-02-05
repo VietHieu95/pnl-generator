@@ -106,16 +106,20 @@ export function PnlCard({ data }: PnlCardProps) {
         <div>
           <div className="text-[#848E9C] flex items-center gap-1 text-[12px] leading-tight">
             Size ({data.sizeUnit})
-            <img
-              src="/swap-icon.png"
-              alt="swap"
-              className="ml-0 translate-y-[1px]"
+            <div
               style={{
-                width: '13px',
-                height: '13px',
-                opacity: 0.6,
-                filter: 'brightness(0.8)'
+                backgroundColor: '#858e9c',
+                WebkitMaskImage: 'url(/swap-icon.png)',
+                maskImage: 'url(/swap-icon.png)',
+                WebkitMaskSize: 'contain',
+                maskSize: 'contain',
+                WebkitMaskRepeat: 'no-repeat',
+                maskRepeat: 'no-repeat',
+                width: '19px',
+                height: '19px',
+                backgroundRepeat: 'no-repeat'
               }}
+              className="ml-0 translate-y-[1px]"
             />
           </div>
           <div className="font-normal text-[#e8edf2] text-[15px] mt-0.5" data-testid="text-size">
