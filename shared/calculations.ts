@@ -55,9 +55,34 @@ export function calculatePnlValues(data: Partial<PnlData>): Partial<PnlData> {
         liqPrice = 0;
     }
 
-    // For Shorts, if the liquidation price is unrealistically high (e.g. > 500% of entry), hide it by setting to 0
-    if (positionType === 'Short' && liqPrice > entryPrice * 5) {
-        liqPrice = 0;
+    // Dynamic Thresholds for Shorts
+    if (positionType === 'Short' && liqPrice > 0) {
+        let hideLiq = false;
+
+        // 1. Hard ceiling - anything over $1,000,000 is always unrealistically hidden for safe shorts
+        if (liqPrice > 1000000) {
+            hideLiq = true;
+        }
+        // 2. Micro coins (< $0.01): Needs > 1000x to be considered unreachable
+        else if (entryPrice < 0.01 && liqPrice > entryPrice * 1000) {
+            hideLiq = true;
+        }
+        // 3. Pennies (< $1): Needs > 100x 
+        else if (entryPrice >= 0.01 && entryPrice < 1 && liqPrice > entryPrice * 100) {
+            hideLiq = true;
+        }
+        // 4. Mid range (< $100): Needs > 20x
+        else if (entryPrice >= 1 && entryPrice < 100 && liqPrice > entryPrice * 20) {
+            hideLiq = true;
+        }
+        // 5. Large caps (>= $100): Needs > 5x
+        else if (entryPrice >= 100 && liqPrice > entryPrice * 5) {
+            hideLiq = true;
+        }
+
+        if (hideLiq) {
+            liqPrice = 0; // Signals UI to show '--'
+        }
     }
 
     return {
