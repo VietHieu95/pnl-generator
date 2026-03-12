@@ -55,6 +55,11 @@ export function calculatePnlValues(data: Partial<PnlData>): Partial<PnlData> {
         liqPrice = 0;
     }
 
+    // For Shorts, if the liquidation price is unrealistically high (e.g. > 500% of entry), hide it by setting to 0
+    if (positionType === 'Short' && liqPrice > entryPrice * 5) {
+        liqPrice = 0;
+    }
+
     return {
         ...updated,
         unrealizedPnl: Number(pnl.toFixed(2)),

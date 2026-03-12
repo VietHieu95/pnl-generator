@@ -179,7 +179,14 @@ export function PnlCard({ data }: PnlCardProps) {
           <div className="text-[#848E9C] text-[12px] leading-tight">Liq.Price (USDT)</div>
           <div className="text-[#4A5568] text-[4px] tracking-[0.5px] leading-none">••••••••••••••••••••••••••••••••••••</div>
           <div className="font-normal text-[#e8edf2] text-[15px]" data-testid="text-liq-price">
-            {data.liqPrice <= 0 ? "--" : renderNumberWithStyledComma(formatPrice(data.liqPrice, priceDecimals))}
+            {data.liqPrice <= 0 ? (
+              <div className="flex flex-col items-end">
+                <span>--</span>
+                <div className="text-[#4A5568] text-[4px] tracking-[0.5px] leading-none mt-[1px]">••••••••</div>
+              </div>
+            ) : (
+              renderNumberWithStyledComma(formatPrice(data.liqPrice, priceDecimals))
+            )}
           </div>
         </div>
       </div>
