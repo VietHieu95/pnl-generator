@@ -13,16 +13,37 @@ export function PnlCard({ data }: PnlCardProps) {
     }).format(num);
   };
 
-  const formatPrice = (num: number) => {
+  const formatPrice = (num: number, forceDecimals?: number) => {
+    if (forceDecimals !== undefined) {
+      return new Intl.NumberFormat("de-DE", {
+        minimumFractionDigits: forceDecimals,
+        maximumFractionDigits: forceDecimals,
+      }).format(num);
+    }
     const parts = num.toString().split(".");
     let decimalPlaces = parts[1]?.length || 1;
-    if (num > 1 && decimalPlaces > 2) decimalPlaces = 2;
+    if (decimalPlaces > 8) decimalPlaces = 8;
 
     return new Intl.NumberFormat("de-DE", {
       minimumFractionDigits: decimalPlaces,
       maximumFractionDigits: decimalPlaces,
     }).format(num);
   };
+
+  const getPriceDecimals = () => {
+    const entryStr = data.entryPrice.toString().split(".")[1] || "";
+    const markStr = data.markPrice.toString().split(".")[1] || "";
+
+    let dec = Math.max(entryStr.length, markStr.length);
+
+    // Usually Binance shows 2+ decimals for values over $1
+    if (dec < 2 && data.entryPrice >= 1) dec = 2;
+    // Don't go crazy on decimals
+    if (dec > 8) dec = 8;
+    return dec;
+  };
+
+  const priceDecimals = getPriceDecimals();
 
   const renderNumberWithStyledComma = (text: string) => {
     const parts = text.split(",");
@@ -145,20 +166,20 @@ export function PnlCard({ data }: PnlCardProps) {
           <div className="text-[#848E9C] text-[12px] leading-tight">Entry Price (USDT)</div>
           <div className="text-[#4A5568] text-[4px] tracking-[0.5px] leading-none">•••••••••••••••••••••••••••••••••••••••••</div>
           <div className="font-normal text-[#e8edf2] text-[15px]" data-testid="text-entry-price">
-            {renderNumberWithStyledComma(formatPrice(data.entryPrice))}
+            {renderNumberWithStyledComma(formatPrice(data.entryPrice, priceDecimals))}
           </div>
         </div>
         <div>
           <div className="text-[#848E9C] text-[12px] leading-tight">Mark Price (USDT)</div>
           <div className="font-normal text-[#e8edf2] text-[15px] mt-1" data-testid="text-mark-price">
-            {renderNumberWithStyledComma(formatPrice(data.markPrice))}
+            {renderNumberWithStyledComma(formatPrice(data.markPrice, priceDecimals))}
           </div>
         </div>
         <div className="text-right">
           <div className="text-[#848E9C] text-[12px] leading-tight">Liq.Price (USDT)</div>
           <div className="text-[#4A5568] text-[4px] tracking-[0.5px] leading-none">••••••••••••••••••••••••••••••••••••</div>
           <div className="font-normal text-[#e8edf2] text-[15px]" data-testid="text-liq-price">
-            {renderNumberWithStyledComma(formatPrice(data.liqPrice))}
+            {data.liqPrice <= 0 ? "--" : renderNumberWithStyledComma(formatPrice(data.liqPrice, priceDecimals))}
           </div>
         </div>
       </div>

@@ -1,5 +1,5 @@
 // Service Worker for PNL Generator PWA
-const CACHE_NAME = 'pnl-generator-v1';
+const CACHE_NAME = 'pnl-generator-v2';
 const urlsToCache = [
     '/',
     '/index.html',

@@ -44,7 +44,16 @@ export function calculatePnlValues(data: Partial<PnlData>): Partial<PnlData> {
             : entryPrice * (1 + (1 / leverage) - mmr);
     }
 
-    liqPrice = Math.max(0, liqPrice);
+    // Determine the original decimals from entryPrice
+    const entryStr = entryPrice.toString();
+    const decimals = entryStr.includes('.') ? entryStr.split('.')[1].length : 2;
+
+    // Use default precision or entry precision, whichever is greater, up to a reasonable limit
+    const liqDecimals = Math.max(2, Math.min(decimals, 8));
+
+    if (liqPrice < 0) {
+        liqPrice = 0;
+    }
 
     return {
         ...updated,
@@ -52,6 +61,6 @@ export function calculatePnlValues(data: Partial<PnlData>): Partial<PnlData> {
         roi: Number(roi.toFixed(2)),
         margin: Number(initialMargin.toFixed(2)),
         marginRatio: Number(Math.max(0, Math.min(marginRatio, 100)).toFixed(2)),
-        liqPrice: Number(liqPrice.toFixed(2))
+        liqPrice: Number(liqPrice.toFixed(liqDecimals))
     };
 }
