@@ -3,7 +3,7 @@ import * as React from "react"
 import { cn } from "@/lib/utils"
 
 const Input = React.forwardRef<HTMLInputElement, React.ComponentProps<"input">>(
-  ({ className, type, onTouchStart, ...props }, ref) => {
+  ({ className, type, onClick, ...props }, ref) => {
     // h-9 to match icon buttons and default buttons.
     return (
       <input
@@ -13,12 +13,13 @@ const Input = React.forwardRef<HTMLInputElement, React.ComponentProps<"input">>(
           className
         )}
         ref={ref}
-        onTouchStart={(e) => {
-          // On iOS PWA standalone, force focus on touch start to raise keyboard
+        onClick={(e) => {
+          // iOS PWA standalone: explicitly focus in the click phase (not touchstart)
+          // so iOS correctly raises the keyboard instead of dismissing it.
           if (!props.disabled && !props.readOnly) {
             (e.currentTarget as HTMLInputElement).focus();
           }
-          onTouchStart?.(e);
+          onClick?.(e);
         }}
         {...props}
       />
