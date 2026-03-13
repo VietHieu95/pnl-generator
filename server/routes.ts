@@ -6,6 +6,33 @@ import { calculatePnlValues } from "@shared/calculations";
 import puppeteer from "puppeteer";
 import { getBrowser } from "./browser";
 
+// -------------------------------------------------------------------
+// In-memory PNG cache: key = urlParams string, value = { buffer, expiry }
+// Cache entries expire after 60 seconds
+// -------------------------------------------------------------------
+interface CacheEntry {
+  buffer: Buffer;
+  expiry: number;
+}
+const imageCache = new Map<string, CacheEntry>();
+const CACHE_TTL_MS = 60_000;
+
+function getCached(key: string): Buffer | null {
+  const entry = imageCache.get(key);
+  if (!entry) return null;
+  if (Date.now() > entry.expiry) {
+    imageCache.delete(key);
+    return null;
+  }
+  return entry.buffer;
+}
+
+function setCache(key: string, buffer: Buffer): void {
+  imageCache.set(key, { buffer, expiry: Date.now() + CACHE_TTL_MS });
+  // Auto-evict after TTL to prevent memory leaks
+  setTimeout(() => imageCache.delete(key), CACHE_TTL_MS);
+}
+
 export async function registerRoutes(
   httpServer: Server,
   app: Express
@@ -27,7 +54,6 @@ export async function registerRoutes(
 
   app.post("/api/pnl", async (req, res) => {
     try {
-      // Calculate missing values if possible
       const calculatedData = calculatePnlValues(req.body);
       const data = await storage.updatePnlData(calculatedData);
       res.json(data);
@@ -40,16 +66,23 @@ export async function registerRoutes(
   app.get("/api/pnl/image", async (req, res) => {
     let page;
     try {
+      const urlParams = new URLSearchParams(req.query as any).toString();
+
+      // --- Cache hit: return immediately without Puppeteer ---
+      const cached = getCached(urlParams);
+      if (cached) {
+        res.set("Content-Type", "image/png");
+        res.set("X-Cache", "HIT");
+        return res.send(cached);
+      }
+
       const port = process.env.PORT || 3000;
       const browser = await getBrowser();
       page = await browser.newPage();
 
-      // Set high resolution viewport (4x for maximum sharpness to match web export)
+      // Set high resolution viewport (4x for maximum sharpness)
       await page.setViewport({ width: 480, height: 280, deviceScaleFactor: 4 });
 
-      // Navigate to the isolated card page
-      // Append query parameters to the URL to enable stateless generation
-      const urlParams = new URLSearchParams(req.query as any).toString();
       const url = `http://127.0.0.1:${port}/isolated-card${urlParams ? `?${urlParams}` : ""}`;
 
       try {
@@ -58,11 +91,9 @@ export async function registerRoutes(
           timeout: 60000,
         });
 
-        // Wait for the card container to be visible
         const selector = "#pnl-card-container";
         await page.waitForSelector(selector, { timeout: 30000 });
 
-        // Extract the element's bounding box to crop accurately
         const element = await page.$(selector);
         if (!element) {
           throw new Error("Card container element is null");
@@ -73,8 +104,14 @@ export async function registerRoutes(
           omitBackground: true,
         });
 
+        const buffer = Buffer.from(imageBuffer);
+
+        // --- Cache miss: store result for next identical request ---
+        setCache(urlParams, buffer);
+
         res.set("Content-Type", "image/png");
-        res.send(imageBuffer);
+        res.set("X-Cache", "MISS");
+        res.send(buffer);
       } catch (pageError: any) {
         const content = await page.content();
         console.error("Page content at error:", content.substring(0, 500));
@@ -92,3 +129,6 @@ export async function registerRoutes(
 
   return httpServer;
 }
+
+
+

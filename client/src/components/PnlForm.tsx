@@ -52,13 +52,45 @@ export function PnlForm({ data, onChange, isLive = false }: PnlFormProps) {
         </div>
 
         <div className="space-y-1.5 min-w-0">
-          <Label className="text-muted-foreground text-[10px] font-bold uppercase tracking-tight ml-1">Size Unit</Label>
-          <Input
-            value={data.sizeUnit}
-            placeholder="BTC"
-            onChange={(e) => handleFieldChange("sizeUnit", e.target.value)}
-            className="h-9 bg-white/5 border-white/5 focus:border-primary/50 text-sm font-bold uppercase"
-          />
+          <Label className="text-muted-foreground text-[10px] font-bold uppercase tracking-tight ml-1">
+            Size Unit
+          </Label>
+          <div className="flex gap-1.5 items-stretch">
+            <Input
+              value={data.sizeUnit.toUpperCase()}
+              placeholder="BTC"
+              readOnly={data.sizeUnit.toUpperCase() === 'USDT'}
+              onChange={(e) => {
+                if (data.sizeUnit.toUpperCase() !== 'USDT') {
+                  handleFieldChange("sizeUnit", e.target.value);
+                }
+              }}
+              className={`h-9 border-white/5 text-sm font-bold uppercase flex-1 min-w-0 ${
+                data.sizeUnit.toUpperCase() === 'USDT'
+                  ? 'bg-primary/10 border-primary/30 text-primary cursor-default'
+                  : 'bg-white/5 focus:border-primary/50'
+              }`}
+            />
+            <button
+              type="button"
+              onClick={() => {
+                const currentUnit = data.sizeUnit.toUpperCase();
+                if (currentUnit === 'USDT') {
+                  const newUnit = data.symbol.replace("USDT", "").replace("BUSD", "") || "BTC";
+                  onChange({ ...data, sizeUnit: newUnit, size: Number((data.size / data.entryPrice).toFixed(4)) });
+                } else {
+                  onChange({ ...data, sizeUnit: 'USDT', size: Number((data.size * data.entryPrice).toFixed(2)) });
+                }
+              }}
+              className={`h-9 px-3 rounded-lg text-[10px] font-black tracking-wider transition-all duration-200 flex items-center gap-1 shrink-0 border ${
+                data.sizeUnit.toUpperCase() === 'USDT'
+                  ? 'bg-primary text-primary-foreground border-primary shadow-[0_0_12px_rgba(243,186,47,0.35)]'
+                  : 'bg-white/8 border-white/10 text-white/60 hover:bg-white/15 hover:text-white active:scale-95'
+              }`}
+            >
+              ⇆ USDT
+            </button>
+          </div>
         </div>
       </div>
 
@@ -154,36 +186,66 @@ export function PnlForm({ data, onChange, isLive = false }: PnlFormProps) {
         {[
           { id: "unrealizedPnl", label: "Unrealized PNL" },
           { id: "roi", label: "ROI (%)" },
-          { id: "size", label: "Position Size" },
+          // Always show the base coin label (e.g. BTC), even if sizeUnit is USDT
+          { id: "size", label: `Size (${data.sizeUnit.toUpperCase() === 'USDT' ? (data.symbol.replace('USDT','').replace('BUSD','') || 'Coin') : data.sizeUnit.toUpperCase()})` },
+          { id: "sizeUsdt", label: "Size (USDT)" },
           { id: "margin", label: "Initial Margin" },
           { id: "liqPrice", label: "Liq. Price" },
           { id: "marginRatio", label: "Margin Ratio" },
-        ].map((field) => (
+        ].map((field) => {
+          let value: string | number = '';
+          if (field.id === 'sizeUsdt') {
+            // Always compute the USDT equivalent regardless of current sizeUnit
+            value = data.sizeUnit.toUpperCase() === 'USDT'
+              ? data.size
+              : Number((data.size * data.entryPrice).toFixed(2));
+          } else if (field.id === 'size') {
+            // If sizeUnit is USDT, derive approximate coin amount for display
+            value = data.sizeUnit.toUpperCase() === 'USDT'
+              ? Number((data.size / data.entryPrice).toFixed(4))
+              : data.size;
+          } else {
+            value = data[field.id as keyof PnlData] ?? '';
+          }
+          
+          const isEditable = field.id === 'size' || field.id === 'sizeUsdt';
+
+          return (
           <div key={field.id} className="space-y-1">
             <Label className="text-[9px] font-bold text-muted-foreground/50 uppercase tracking-tighter flex justify-between ml-1">
               {field.label}
-              {["unrealizedPnl", "roi", "margin", "liqPrice", "marginRatio"].includes(field.id) &&
+              {!isEditable &&
                 <span className="text-[7px] bg-white/10 px-1 rounded uppercase font-black text-primary/60">Auto</span>
               }
             </Label>
             <Input
               type="number"
-              value={data[field.id as keyof PnlData] ?? ''}
+              value={value}
               onChange={(e) => {
-                // Only allow editing for 'size' field
+                const val = parseFloat(e.target.value);
                 if (field.id === 'size') {
                   handleNumberChange(field.id, e.target.value);
+                } else if (field.id === 'sizeUsdt') {
+                  if (!isNaN(val)) {
+                    if (data.sizeUnit.toUpperCase() === 'USDT') {
+                      handleFieldChange('size', val);
+                    } else {
+                      handleFieldChange('size', Number((val / data.entryPrice).toFixed(4)));
+                    }
+                  } else {
+                    handleFieldChange('size', 0);
+                  }
                 }
               }}
-              disabled={["unrealizedPnl", "roi", "margin", "liqPrice", "marginRatio"].includes(field.id)}
-              className={`h-7 bg-transparent border-transparent text-[11px] font-bold p-0 px-1 ${field.id === 'size'
+              disabled={!isEditable}
+              className={`h-7 bg-transparent border-transparent text-[11px] font-bold p-0 px-1 ${isEditable
                 ? 'cursor-text hover:bg-white/5 focus:bg-white/10'
                 : 'disabled:opacity-80 cursor-not-allowed'
                 }`}
-              readOnly={field.id !== 'size'}
+              readOnly={!isEditable}
             />
           </div>
-        ))}
+        )})}
       </div>
 
       <div className="grid grid-cols-2 gap-3 border-t border-white/5 pt-4 pb-2 w-full min-w-0">

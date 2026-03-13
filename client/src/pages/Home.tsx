@@ -1,314 +1,38 @@
-import { useState, useRef, useCallback, useEffect } from "react";
-import { PnlData } from "@shared/schema";
+import { useRef } from "react";
 import { PnlCard } from "@/components/PnlCard";
 import { PnlForm } from "@/components/PnlForm";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Download, Image, RotateCcw, Plus, X, Activity } from "lucide-react"; // Changed CloudSync to Activity
-import { domToPng, domToBlob } from "modern-screenshot";
-import { useToast } from "@/hooks/use-toast";
-import { calculatePnlValues } from "@shared/calculations";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
-
-const defaultPnlData: PnlData = {
-  id: Math.random().toString(36).substring(7),
-  symbol: "BTCUSDT",
-  type: "Perp",
-  marginMode: "Cross",
-  leverage: 20,
-  positionType: "Long",
-  signalBars: 4,
-  unrealizedPnl: -1381.63,
-  roi: -41.03,
-  size: 0.768,
-  sizeUnit: "BTC",
-  margin: 3367.29,
-  marginRatio: 5.17,
-  entryPrice: 89493.20,
-  markPrice: 87689.94,
-  liqPrice: 80812.02,
-  walletBalance: 10000,
-  tpPrice: "--",
-  slPrice: "--",
-};
+import { Download, Image, RotateCcw, Plus, X, Activity } from "lucide-react";
+import { useTradesState } from "@/hooks/useTradesState";
+import { useTradeExport } from "@/hooks/useTradeExport";
+import { useBinanceTicker } from "@/hooks/useBinanceTicker";
 
 export default function Home() {
-  const queryClient = useQueryClient();
-  const { toast } = useToast();
-
-  // Sync with Server for AI Agent features
-  const { data: serverPnl, isLoading: isServerLoading } = useQuery<PnlData>({
-    queryKey: ["/api/pnl"],
-    refetchInterval: 5000, // Optional: auto-refresh every 5 seconds to see AI updates
-  });
-
-  const updateServerPnl = useMutation({
-    mutationFn: async (data: Partial<PnlData>) => {
-      const res = await apiRequest("POST", "/api/pnl", data);
-      return res.json();
-    },
-    onSuccess: (data) => {
-      queryClient.setQueryData(["/api/pnl"], data);
-    },
-  });
-
-  const [trades, setTrades] = useState<PnlData[]>(() => {
-    const saved = localStorage.getItem("trades");
-    const parsedTrades = saved ? JSON.parse(saved) : [defaultPnlData];
-    return parsedTrades.map((trade: PnlData) => ({
-      ...trade,
-      id: trade.id || Math.random().toString(36).substring(7),
-    }));
-  });
-
-  const [activeId, setActiveId] = useState<string>(() => {
-    const savedActiveId = localStorage.getItem("activeTradeId");
-    const initialTrades = JSON.parse(localStorage.getItem("trades") || "[]");
-    return savedActiveId || initialTrades[0]?.id || defaultPnlData.id!;
-  });
-
-  const [isExporting, setIsExporting] = useState(false);
-  const [isLive, setIsLive] = useState(() => {
-    return localStorage.getItem("isLive") === "true";
-  });
+  const {
+    trades,
+    activeId,
+    setActiveId,
+    isLive,
+    setIsLive,
+    activeTrade,
+    serverPnl,
+    addTrade,
+    deleteTrade,
+    updateActiveTrade,
+    updateTradePrice,
+    resetActiveTrade,
+  } = useTradesState();
 
   const cardRef = useRef<HTMLDivElement>(null);
+  const { isExporting, handleExport, handleCopyToClipboard } = useTradeExport(
+    cardRef,
+    activeTrade
+  );
 
-  // Derive the active trade
-  const activeTrade = trades.find(t => t.id === activeId) || trades[0];
-
-  // Sync server data to local active trade if it's newer or if user wants it
-  useEffect(() => {
-    if (serverPnl) {
-      // For now, let's just make the server data available as a special "AI Trade" or update active
-      // Setting active trade to what's on server if it was changed by AI
-      setTrades(prev => prev.map(t => {
-        if (t.id === activeId) {
-          // Compare certain fields to see if server has priority (e.g. AI updated it)
-          // For simplicity, we can add a manual "Sync" button or auto-sync
-          return { ...t, ...serverPnl, id: t.id };
-        }
-        return t;
-      }));
-    }
-  }, [serverPnl, activeId]);
-
-  // Save state to localStorage whenever it changes
-  useEffect(() => {
-    localStorage.setItem("trades", JSON.stringify(trades));
-    localStorage.setItem("activeTradeId", activeId);
-    localStorage.setItem("isLive", isLive.toString());
-  }, [trades, activeId, isLive]);
-
-  // WebSocket for all unique symbols
-  useEffect(() => {
-    if (!isLive || trades.length === 0) return;
-
-    const uniqueSymbols = Array.from(new Set(trades.map(t => t.symbol.toLowerCase())));
-    if (uniqueSymbols.length === 0) return;
-
-    const streams = uniqueSymbols.map(s => `${s}@ticker`).join('/');
-    const ws = new WebSocket(`wss://fstream.binance.com/stream?streams=${streams}`);
-
-    ws.onmessage = (event) => {
-      const msg = JSON.parse(event.data);
-      if (msg.data && msg.data.e === '24hrTicker') {
-        const symbol = msg.data.s;
-        const price = parseFloat(msg.data.c);
-
-        setTrades(prev => prev.map(t => {
-          if (t.symbol.toUpperCase() === symbol.toUpperCase()) {
-            return { ...t, markPrice: price };
-          }
-          return t;
-        }));
-      }
-    };
-
-    return () => ws.close();
-  }, [isLive, JSON.stringify(trades.map(t => t.symbol)), toast]);
-
-  // Automatic calculations for all trades using shared utility
-  useEffect(() => {
-    const updatedTrades = trades.map(t => {
-      const calculated = calculatePnlValues(t);
-
-      // Check if we need to update to avoid infinite loop
-      if (
-        Math.abs((calculated.unrealizedPnl || 0) - (t.unrealizedPnl || 0)) > 0.01 ||
-        Math.abs((calculated.roi || 0) - (t.roi || 0)) > 0.01 ||
-        Math.abs((calculated.margin || 0) - (t.margin || 0)) > 0.01 ||
-        Math.abs((calculated.marginRatio || 0) - (t.marginRatio || 0)) > 0.01 ||
-        Math.abs((calculated.liqPrice || 0) - (t.liqPrice || 0)) > 0.01
-      ) {
-        return { ...t, ...calculated };
-      }
-      return t;
-    });
-
-    if (JSON.stringify(updatedTrades) !== JSON.stringify(trades)) {
-      setTrades(updatedTrades);
-    }
-  }, [trades]);
-
-  const addTrade = () => {
-    const newTrade = {
-      ...defaultPnlData,
-      id: Math.random().toString(36).substring(7),
-      // Optionally, copy some values from the last trade or active trade
-      symbol: trades[trades.length - 1]?.symbol || "BTCUSDT",
-      walletBalance: activeTrade?.walletBalance || defaultPnlData.walletBalance,
-    };
-    setTrades([...trades, newTrade]);
-    setActiveId(newTrade.id);
-    toast({ title: "New Trade Added", description: "You now have a new trade slot." });
-  };
-
-  const deleteTrade = (id: string, e: React.MouseEvent) => {
-    e.stopPropagation(); // Prevent tab activation
-    if (trades.length === 1) {
-      toast({ title: "Cannot Delete", description: "You must have at least one trade.", variant: "destructive" });
-      return;
-    }
-    const newTrades = trades.filter(t => t.id !== id);
-    setTrades(newTrades);
-    if (activeId === id) {
-      // If the active trade was deleted, set the first remaining trade as active
-      setActiveId(newTrades[0].id!);
-    }
-    toast({ title: "Trade Deleted" });
-  };
-
-  const updateActiveTrade = (data: PnlData) => {
-    setTrades(prev => prev.map(t => t.id === activeId ? data : t));
-    // Sync to server for AI Agent
-    updateServerPnl.mutate(data);
-  };
-
-  const handleExport = useCallback(async () => {
-    if (!cardRef.current) return;
-
-    setIsExporting(true);
-    try {
-      const dataUrl = await domToPng(cardRef.current, {
-        scale: 4,
-        backgroundColor: "#202630",
-        width: 480,
-        height: 280,
-        fetch: {
-          requestInit: {
-            mode: 'cors',
-          },
-        },
-        font: {
-          preferredFormat: 'woff2',
-        },
-      });
-
-      const a = document.createElement("a");
-      a.href = dataUrl;
-      a.download = `pnl-${activeTrade?.symbol || 'trade'}-${Date.now()}.png`;
-      a.style.display = "none";
-      document.body.appendChild(a);
-      a.click();
-
-      setTimeout(() => {
-        document.body.removeChild(a);
-      }, 100);
-
-      toast({
-        title: "Image downloaded!",
-        description: "Your PNL image has been saved.",
-      });
-    } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      console.error("Export error:", errorMessage, error);
-      toast({
-        title: "Export failed",
-        description: errorMessage || "Could not export the image. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsExporting(false);
-    }
-  }, [activeTrade, toast]);
-
-  const handleCopyToClipboard = useCallback(async () => {
-    if (!cardRef.current) return;
-
-    // Feature detection
-    if (!navigator.clipboard || !navigator.clipboard.write) {
-      toast({
-        title: "Not Supported",
-        description: "Your browser does not support copying images to clipboard. Please use Download instead.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setIsExporting(true);
-    try {
-      const blob = await domToBlob(cardRef.current, {
-        scale: 4,
-        backgroundColor: "#202630",
-        width: 480,
-        height: 280,
-        fetch: {
-          requestInit: {
-            mode: 'cors',
-          },
-        },
-        font: {
-          preferredFormat: 'woff2',
-        },
-      });
-
-      if (!blob) {
-        throw new Error("Failed to generate image.");
-      }
-
-      await navigator.clipboard.write([
-        new ClipboardItem({ [blob.type]: blob }),
-      ]);
-
-      toast({
-        title: "Copied to clipboard!",
-        description: "You can now paste the image anywhere.",
-      });
-    } catch (error: any) {
-      console.error("Copy error:", error);
-
-      let errorMessage = "Could not copy to clipboard.";
-      if (error.name === "NotAllowedError") {
-        errorMessage = "Permission denied. Please allow clipboard access.";
-      } else if (error.message) {
-        errorMessage = error.message;
-      }
-
-      toast({
-        title: "Copy failed",
-        description: errorMessage + " Try downloading instead.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsExporting(false);
-    }
-  }, [toast]);
-
-  const handleReset = useCallback(() => {
-    setTrades(prev => prev.map(t =>
-      t.id === activeId
-        ? { ...defaultPnlData, id: t.id, walletBalance: t.walletBalance } // Keep ID and walletBalance
-        : t
-    ));
-    setIsLive(false);
-    toast({
-      title: "Reset complete",
-      description: "Active trade values reset, but your Capital remains saved.",
-    });
-  }, [activeId, toast]);
+  // Stable WebSocket subscription — only reconnects when symbols change
+  useBinanceTicker(trades, isLive, updateTradePrice);
 
   return (
     <div className="min-h-screen w-screen overflow-x-hidden bg-[#0B0E11] font-medium border-t-2 border-primary/20">
@@ -337,14 +61,14 @@ export default function Home() {
                   onCheckedChange={setIsLive}
                   className="scale-[0.6] data-[state=checked]:bg-primary"
                 />
-                <span className={`text-[9px] font-black uppercase tracking-tighter ${isLive ? 'text-primary' : 'text-muted-foreground'}`}>
-                  {isLive ? 'LIVE' : 'DRAFT'}
+                <span className={`text-[9px] font-black uppercase tracking-tighter ${isLive ? "text-primary" : "text-muted-foreground"}`}>
+                  {isLive ? "LIVE" : "DRAFT"}
                 </span>
               </div>
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={handleReset}
+                onClick={resetActiveTrade}
                 className="h-7 w-7 p-0 text-muted-foreground hover:bg-white/5"
               >
                 <RotateCcw className="w-3.5 h-3.5" />
@@ -352,16 +76,17 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Tabs Row */}
+          {/* Trade Tabs */}
           <div className="flex items-center gap-2 overflow-x-auto no-scrollbar scroll-smooth px-1">
             {trades.map((t) => (
               <div
                 key={t.id}
                 onClick={() => setActiveId(t.id!)}
-                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border text-[10px] font-bold uppercase transition-all whitespace-nowrap ${activeId === t.id
-                  ? 'bg-primary text-primary-foreground border-primary shadow-lg'
-                  : 'bg-white/5 border-white/5 text-muted-foreground'
-                  }`}
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border text-[10px] font-bold uppercase transition-all whitespace-nowrap cursor-pointer ${
+                  activeId === t.id
+                    ? "bg-primary text-primary-foreground border-primary shadow-lg"
+                    : "bg-white/5 border-white/5 text-muted-foreground"
+                }`}
               >
                 <span>{t.symbol}</span>
                 <button
@@ -406,34 +131,15 @@ export default function Home() {
             </div>
 
             <div className="space-y-6 w-full min-w-0">
-              {/* Scrollable container for card preview */}
               <div className="w-full max-h-[70vh] overflow-y-auto overflow-x-hidden p-3 bg-gradient-to-b from-[#1E2329] to-[#0B0E11] rounded-[1.5rem] border border-white/5 shadow-2xl">
-                {/* 
-                  Scale wrapper: Reduced to 0.75 for better mobile fit
-                  Allows entire card to be visible on smaller screens
-                */}
                 <div className="w-full flex justify-center">
-                  <div
-                    className="origin-top"
-                    style={{
-                      transform: 'scale(0.75)',
-                      transformOrigin: 'top center'
-                    }}
-                  >
-                    {/* 
-                      Ref is now on an UNSCALED inner div.
-                      This prevents modern-screenshot from capturing the whitespace 
-                      caused by the parent's scale transform.
-                    */}
+                  <div className="origin-top" style={{ transform: "scale(0.75)", transformOrigin: "top center" }}>
                     <div ref={cardRef} className="shrink-0">
                       <PnlCard data={activeTrade} />
                     </div>
                   </div>
                 </div>
               </div>
-
-
-
 
               <div className="grid grid-cols-2 gap-3 opacity-40 w-full min-w-0">
                 <div className="space-y-1 min-w-0">

@@ -126,7 +126,7 @@ export function PnlCard({ data }: PnlCardProps) {
       <div className="grid grid-cols-3 gap-2 mb-1 px-4 mt-2">
         <div>
           <div className="text-[#848E9C] flex items-center gap-1 text-[12px] leading-tight">
-            Size ({data.sizeUnit})
+            Size ({data.sizeUnit.toUpperCase()})
             <div
               style={{
                 backgroundColor: '#858e9c',
