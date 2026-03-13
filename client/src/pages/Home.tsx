@@ -36,7 +36,8 @@ export default function Home() {
 
   return (
     <div className="min-h-[100dvh] w-full bg-[#0B0E11] font-medium border-t-2 border-primary/20">
-      <header className="w-full border-b border-white/5 bg-[#0B0E11]/95 backdrop-blur-xl sticky top-0 z-50">
+      <header className="w-full border-b border-white/5 bg-[#0B0E11]/95 backdrop-blur-xl sticky top-0 z-50"
+        style={{ paddingTop: 'env(safe-area-inset-top)' }}>
         <div className="w-full max-w-7xl mx-auto px-3 py-2.5">
           {/* Top Row: Brand & Mode */}
           <div className="flex items-center justify-between mb-3 px-1">
