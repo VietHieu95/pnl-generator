@@ -17,7 +17,14 @@ export function PnlForm({ data, onChange, isLive = false }: PnlFormProps) {
   };
 
   const handleNumberChange = (field: keyof PnlData, value: string) => {
+    // Allow empty string so user can clear the input
+    if (value === "") {
+      handleFieldChange(field, "");
+      return;
+    }
+
     const numValue = parseFloat(value);
+    // Always call change if it's a valid number
     if (!isNaN(numValue)) {
       handleFieldChange(field, numValue);
     }
