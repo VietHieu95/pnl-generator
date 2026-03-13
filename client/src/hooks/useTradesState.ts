@@ -12,7 +12,7 @@ const defaultPnlData: PnlData = {
   marginMode: "Cross",
   leverage: 20,
   positionType: "Long",
-  signalBars: 4,
+  signalBars: 1,
   unrealizedPnl: -1381.63,
   roi: -41.03,
   size: 0.768,

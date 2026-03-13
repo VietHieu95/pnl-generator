@@ -24,7 +24,7 @@ export const pnlDataSchema = z.object({
   marginMode: z.enum(["Cross", "Isolated"]).default("Cross"),
   leverage: z.coerce.number().min(1).max(125).default(20),
   positionType: z.enum(["Long", "Short"]).default("Long"),
-  signalBars: z.coerce.number().min(0).max(4).default(4),
+  signalBars: z.coerce.number().min(0).max(4).default(1),
   unrealizedPnl: z.coerce.number().default(-1381.63),
   roi: z.coerce.number().default(-41.03),
   size: z.coerce.number().default(0.768),
