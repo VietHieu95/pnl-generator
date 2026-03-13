@@ -204,7 +204,7 @@ export function PnlCard({ data }: PnlCardProps) {
           TP/SL
         </button>
         <button
-          className="font-medium rounded-lg hover:opacity-90 transition-colors text-[#e6ecf3] text-[12px] bg-[#4B2127]"
+          className="font-medium rounded-lg hover:bg-[#363C45] transition-colors text-[#e6ecf3] text-[12px] bg-[#323b47]"
           data-testid="button-close"
         >
           Close
