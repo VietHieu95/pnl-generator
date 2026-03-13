@@ -249,6 +249,15 @@
   body {
     @apply font-sans antialiased bg-background text-foreground;
   }
+
+  /* iOS PWA Standalone Fixes: 
+     Force inputs to be interactive, overriding Safari's aggressive native-app styling defaults
+     which often freeze inputs when added to the Home Screen. */
+  input, textarea, [contenteditable] {
+    -webkit-user-select: text !important;
+    user-select: text !important;
+    -webkit-touch-callout: default !important;
+  }
 }
 
 /**

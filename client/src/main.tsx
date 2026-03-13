@@ -10,6 +10,9 @@ if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('/sw.js')
             .then((registration) => {
                 console.log('SW registered:', registration);
+                // Force check for sw.js updates every time the app loads
+                // especially important for iOS standalone mode
+                registration.update();
             })
             .catch((error) => {
                 console.log('SW registration failed:', error);
