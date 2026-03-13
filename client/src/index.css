@@ -253,10 +253,18 @@
   /* iOS PWA Standalone Fixes: 
      Force inputs to be interactive, overriding Safari's aggressive native-app styling defaults
      which often freeze inputs when added to the Home Screen. */
-  input, textarea, [contenteditable] {
+  input, textarea, [contenteditable], button {
     -webkit-user-select: text !important;
     user-select: text !important;
     -webkit-touch-callout: default !important;
+    /* Eliminate 300ms iOS tap delay and treat all touches as direct interactions */
+    touch-action: manipulation;
+  }
+  
+  /* Ensure nothing has pointer-events blocking in PWA mode */
+  input, textarea {
+    -webkit-appearance: none;
+    cursor: text;
   }
 }
 

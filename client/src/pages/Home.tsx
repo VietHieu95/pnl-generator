@@ -35,7 +35,7 @@ export default function Home() {
   useBinanceTicker(trades, isLive, updateTradePrice);
 
   return (
-    <div className="min-h-[100dvh] w-full overflow-x-hidden bg-[#0B0E11] font-medium border-t-2 border-primary/20">
+    <div className="min-h-[100dvh] w-full bg-[#0B0E11] font-medium border-t-2 border-primary/20">
       <header className="w-full border-b border-white/5 bg-[#0B0E11]/95 backdrop-blur-xl sticky top-0 z-50">
         <div className="w-full max-w-7xl mx-auto px-3 py-2.5">
           {/* Top Row: Brand & Mode */}

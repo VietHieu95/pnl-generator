@@ -33,7 +33,7 @@ export function PnlForm({ data, onChange, isLive = false }: PnlFormProps) {
 
 
   return (
-    <div className="w-full overflow-hidden space-y-4 p-3 md:p-5 bg-white/2 rounded-2xl border border-white/5 shadow-xl backdrop-blur-sm">
+    <div className="w-full space-y-4 p-3 md:p-5 bg-white/2 rounded-2xl border border-white/5 shadow-xl backdrop-blur-sm">
       <div className="flex items-center justify-between px-1">
         <h3 className="text-[11px] font-black text-muted-foreground/60 uppercase tracking-[0.2em]">Position Settings</h3>
         <span className="text-[9px] bg-primary/10 text-primary px-2 py-0.5 rounded-full font-bold">MODE: {data.type}</span>
