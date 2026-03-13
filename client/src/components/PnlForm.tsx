@@ -131,8 +131,9 @@ export function PnlForm({ data, onChange, isLive = false }: PnlFormProps) {
         <div className="space-y-1.5">
           <Label className="text-muted-foreground text-[10px] font-bold uppercase tracking-tight ml-1">Bars</Label>
           <Input
-            type="number"
-            value={data.signalBars}
+            type="text"
+            inputMode="decimal"
+            value={String(data.signalBars)}
             onChange={(e) => handleNumberChange("signalBars", e.target.value)}
             className="h-9 bg-white/5 border-white/5 text-center font-bold text-xs"
           />
@@ -147,8 +148,9 @@ export function PnlForm({ data, onChange, isLive = false }: PnlFormProps) {
             <span className="text-[8px] bg-primary/10 text-primary px-1 rounded">MAX 125X</span>
           </Label>
           <Input
-            type="number"
-            value={data.leverage}
+            type="text"
+            inputMode="decimal"
+            value={String(data.leverage)}
             onChange={(e) => handleNumberChange("leverage", e.target.value)}
             className="h-10 bg-white/5 border-white/5 focus:border-primary/40 font-black text-lg p-0 text-center"
           />
@@ -157,8 +159,9 @@ export function PnlForm({ data, onChange, isLive = false }: PnlFormProps) {
         <div className="space-y-1.5">
           <Label className="text-[10px] font-bold text-primary uppercase ml-1">Wallet Balance</Label>
           <Input
-            type="number"
-            value={data.walletBalance}
+            type="text"
+            inputMode="decimal"
+            value={String(data.walletBalance)}
             onChange={(e) => handleNumberChange("walletBalance", e.target.value)}
             className="h-10 bg-primary/5 border-primary/20 focus:border-primary/50 font-black text-lg p-0 text-center text-primary"
           />
@@ -167,8 +170,9 @@ export function PnlForm({ data, onChange, isLive = false }: PnlFormProps) {
         <div className="space-y-1.5">
           <Label className="text-[10px] font-bold text-muted-foreground uppercase ml-1">Entry Price</Label>
           <Input
-            type="number"
-            value={data.entryPrice}
+            type="text"
+            inputMode="decimal"
+            value={String(data.entryPrice)}
             onChange={(e) => handleNumberChange("entryPrice", e.target.value)}
             className="h-10 bg-white/5 border-white/5 font-black text-center"
           />
@@ -180,8 +184,9 @@ export function PnlForm({ data, onChange, isLive = false }: PnlFormProps) {
             {isLive && <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse mt-1" />}
           </Label>
           <Input
-            type="number"
-            value={data.markPrice}
+            type="text"
+            inputMode="decimal"
+            value={String(data.markPrice)}
             disabled={isLive}
             onChange={(e) => handleNumberChange("markPrice", e.target.value)}
             className={`h-10 font-black text-center ${isLive ? 'bg-white/2 border-dashed opacity-50' : 'bg-white/5 border-white/5'}`}
@@ -226,12 +231,18 @@ export function PnlForm({ data, onChange, isLive = false }: PnlFormProps) {
               }
             </Label>
             <Input
-              type="number"
-              value={value}
+              type="text"
+              inputMode="decimal"
+              value={String(value)}
               onChange={(e) => {
-                const val = parseFloat(e.target.value);
+                const valInput = e.target.value;
+                if (valInput === "") {
+                  if (field.id === 'size') handleFieldChange('size', "");
+                  return;
+                }
+                const val = parseFloat(valInput);
                 if (field.id === 'size') {
-                  handleNumberChange(field.id, e.target.value);
+                  handleNumberChange(field.id, valInput);
                 } else if (field.id === 'sizeUsdt') {
                   if (!isNaN(val)) {
                     if (data.sizeUnit.toUpperCase() === 'USDT') {
@@ -240,7 +251,7 @@ export function PnlForm({ data, onChange, isLive = false }: PnlFormProps) {
                       handleFieldChange('size', Number((val / data.entryPrice).toFixed(4)));
                     }
                   } else {
-                    handleFieldChange('size', 0);
+                    handleFieldChange('size', "");
                   }
                 }
               }}

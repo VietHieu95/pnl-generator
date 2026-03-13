@@ -73,6 +73,9 @@ export function useTradesState() {
     loadActiveId(loadTrades())
   );
   const [isLive, setIsLive] = useState(() => localStorage.getItem("isLive") === "true");
+  
+  // Track last edit time to prevent server overwrite during typing
+  const lastEditTime = useRef<number>(0);
 
   // --- Debounced localStorage writes ---
   const persistTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -91,16 +94,26 @@ export function useTradesState() {
   // --- Server PNL sync (AI Agent updates) ---
   useEffect(() => {
     if (!serverPnl) return;
+    
+    // If we edited locally in the last 2 seconds, ignore server state to avoid race conditions
+    if (Date.now() - lastEditTime.current < 2000) return;
+
     setTrades((prev) =>
-      prev.map((t) => (t.id === activeId ? { ...t, ...serverPnl, id: t.id } : t))
+      prev.map((t) => {
+        if (t.id !== activeId) return t;
+        // Only update if symbol matches (safety check for async state)
+        if (serverPnl.symbol && t.symbol !== serverPnl.symbol) return t;
+        return { ...t, ...serverPnl, id: t.id };
+      })
     );
-  }, [serverPnl]); // intentionally omit activeId to avoid loop
+  }, [serverPnl, activeId]);
 
   // --- Derived ---
   const activeTrade = trades.find((t) => t.id === activeId) || trades[0];
 
   // --- Actions ---
   const addTrade = useCallback(() => {
+    lastEditTime.current = Date.now();
     const last = trades[trades.length - 1];
     const newTrade: PnlData = {
       ...defaultPnlData,
@@ -115,6 +128,7 @@ export function useTradesState() {
 
   const deleteTrade = useCallback(
     (id: string, e: React.MouseEvent) => {
+      lastEditTime.current = Date.now();
       e.stopPropagation();
       if (trades.length === 1) {
         toast({ title: "Cannot Delete", description: "You must have at least one trade.", variant: "destructive" });
@@ -130,12 +144,22 @@ export function useTradesState() {
     [trades.length, activeId, toast]
   );
 
+  // Debounce server updates to avoid flooding API on every keystroke
+  const serverUpdateTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  
   const updateActiveTrade = useCallback(
     (data: PnlData) => {
+      lastEditTime.current = Date.now();
+      
       // Calculate immediately on change instead of global useEffect
       const calculated = calculatePnlValues(data) as PnlData;
       setTrades((prev) => prev.map((t) => (t.id === activeId ? calculated : t)));
-      updateServerPnl.mutate(calculated);
+      
+      // Debounce server update
+      if (serverUpdateTimer.current) clearTimeout(serverUpdateTimer.current);
+      serverUpdateTimer.current = setTimeout(() => {
+        updateServerPnl.mutate(calculated);
+      }, 500);
     },
     [activeId, updateServerPnl]
   );
