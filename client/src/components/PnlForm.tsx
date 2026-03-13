@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { PnlData } from "@shared/schema";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,25 +12,50 @@ interface PnlFormProps {
 }
 
 export function PnlForm({ data, onChange, isLive = false }: PnlFormProps) {
+  // Local editing state: preserves raw text (including commas) while user is typing
+  // Fixes iOS keyboard comma decimal separator issue
+  const [editingValues, setEditingValues] = useState<Partial<Record<string, string>>>({});
+
   const handleFieldChange = (field: keyof PnlData, value: string | number) => {
     const newData = { ...data, [field]: value };
     onChange(newData);
   };
 
-  const handleNumberChange = (field: keyof PnlData, value: string) => {
-    // Allow empty string so user can clear the input
-    if (value === "") {
+  const handleNumberChange = (field: keyof PnlData, rawValue: string) => {
+    // Keep raw text in local state so iOS comma doesn't get eaten
+    setEditingValues(prev => ({ ...prev, [field]: rawValue }));
+
+    if (rawValue === "") {
       handleFieldChange(field, "");
       return;
     }
 
-    const numValue = parseFloat(value);
-    // Always call change if it's a valid number
+    // Normalize comma → dot (iOS decimal keyboard uses comma)
+    const normalized = rawValue.replace(",", ".");
+    const numValue = parseFloat(normalized);
     if (!isNaN(numValue)) {
       handleFieldChange(field, numValue);
     }
+    // If NaN (e.g. just typed "665," transitional state), don't update parent — keep current value
   };
 
+  // On blur, clear local editing state so input shows the actual stored value
+  const handleNumberBlur = (field: keyof PnlData) => {
+    setEditingValues(prev => {
+      const next = { ...prev };
+      delete next[field as string];
+      return next;
+    });
+  };
+
+  // Get display value: editing raw text takes priority over stored number
+  const getDisplayValue = (field: keyof PnlData): string => {
+    if (editingValues[field as string] !== undefined) {
+      return editingValues[field as string]!;
+    }
+    const v = data[field];
+    return v !== undefined && v !== null && v !== "" ? String(v) : "";
+  };
 
 
   return (
@@ -133,8 +159,9 @@ export function PnlForm({ data, onChange, isLive = false }: PnlFormProps) {
           <Input
             type="text"
             inputMode="decimal"
-            value={String(data.signalBars)}
+            value={getDisplayValue("signalBars")}
             onChange={(e) => handleNumberChange("signalBars", e.target.value)}
+            onBlur={() => handleNumberBlur("signalBars")}
             className="h-9 bg-white/5 border-white/5 text-center font-bold text-xs"
           />
         </div>
@@ -150,8 +177,9 @@ export function PnlForm({ data, onChange, isLive = false }: PnlFormProps) {
           <Input
             type="text"
             inputMode="decimal"
-            value={String(data.leverage)}
+            value={getDisplayValue("leverage")}
             onChange={(e) => handleNumberChange("leverage", e.target.value)}
+            onBlur={() => handleNumberBlur("leverage")}
             className="h-10 bg-white/5 border-white/5 focus:border-primary/40 font-black text-lg p-0 text-center"
           />
         </div>
@@ -161,8 +189,9 @@ export function PnlForm({ data, onChange, isLive = false }: PnlFormProps) {
           <Input
             type="text"
             inputMode="decimal"
-            value={String(data.walletBalance)}
+            value={getDisplayValue("walletBalance")}
             onChange={(e) => handleNumberChange("walletBalance", e.target.value)}
+            onBlur={() => handleNumberBlur("walletBalance")}
             className="h-10 bg-primary/5 border-primary/20 focus:border-primary/50 font-black text-lg p-0 text-center text-primary"
           />
         </div>
@@ -172,8 +201,9 @@ export function PnlForm({ data, onChange, isLive = false }: PnlFormProps) {
           <Input
             type="text"
             inputMode="decimal"
-            value={String(data.entryPrice)}
+            value={getDisplayValue("entryPrice")}
             onChange={(e) => handleNumberChange("entryPrice", e.target.value)}
+            onBlur={() => handleNumberBlur("entryPrice")}
             className="h-10 bg-white/5 border-white/5 font-black text-center"
           />
         </div>
@@ -186,9 +216,10 @@ export function PnlForm({ data, onChange, isLive = false }: PnlFormProps) {
           <Input
             type="text"
             inputMode="decimal"
-            value={String(data.markPrice)}
+            value={getDisplayValue("markPrice")}
             disabled={isLive}
             onChange={(e) => handleNumberChange("markPrice", e.target.value)}
+            onBlur={() => handleNumberBlur("markPrice")}
             className={`h-10 font-black text-center ${isLive ? 'bg-white/2 border-dashed opacity-50' : 'bg-white/5 border-white/5'}`}
           />
         </div>
