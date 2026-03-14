@@ -30,24 +30,28 @@ export function PnlCard({ data }: PnlCardProps) {
     }).format(num);
   };
 
-  const getPriceDecimals = () => {
-    const symbol = data.symbol.toUpperCase();
-    const base = symbol.replace(/USDT$|BUSD$|USD$/, "");
-
-    // BTC only: Binance shows 1 decimal place (e.g. 84234.5)
-    // All other symbols: derive from user-entered price values
+  // Entry price decimals: BTC forced to 1dp, others dynamic from entry value
+  const getEntryDecimals = () => {
+    const base = data.symbol.toUpperCase().replace(/USDT$|BUSD$|USD$/, "");
     if (base === "BTC") return 1;
-
-    // Fallback: derive from user-entered price
     const entryStr = data.entryPrice.toString().split(".")[1] || "";
-    const markStr = data.markPrice.toString().split(".")[1] || "";
-    let dec = Math.max(entryStr.length, markStr.length);
+    let dec = entryStr.length;
     if (dec < 2 && data.entryPrice >= 1) dec = 2;
     if (dec > 8) dec = 8;
     return dec;
   };
 
-  const priceDecimals = getPriceDecimals();
+  // Mark price decimals: always from actual mark price value, no forced rounding
+  const getMarkDecimals = () => {
+    const markStr = data.markPrice.toString().split(".")[1] || "";
+    let dec = markStr.length;
+    if (dec < 1) dec = 1;
+    if (dec > 8) dec = 8;
+    return dec;
+  };
+
+  const entryDecimals = getEntryDecimals();
+  const markDecimals = getMarkDecimals();
 
   const renderNumberWithStyledComma = (text: string) => {
     const parts = text.split(",");
@@ -170,13 +174,13 @@ export function PnlCard({ data }: PnlCardProps) {
           <div className="text-[#848E9C] text-[12px] leading-tight">Entry Price (USDT)</div>
           <div className="text-[#4A5568] text-[4px] tracking-[0.5px] leading-none">•••••••••••••••••••••••••••••••••••••••••</div>
           <div className="font-normal text-[#e8edf2] text-[15px]" data-testid="text-entry-price">
-            {renderNumberWithStyledComma(formatPrice(data.entryPrice, priceDecimals))}
+            {renderNumberWithStyledComma(formatPrice(data.entryPrice, entryDecimals))}
           </div>
         </div>
         <div>
           <div className="text-[#848E9C] text-[12px] leading-tight">Mark Price (USDT)</div>
           <div className="font-normal text-[#e8edf2] text-[15px] mt-1" data-testid="text-mark-price">
-            {renderNumberWithStyledComma(formatPrice(data.markPrice, priceDecimals))}
+            {renderNumberWithStyledComma(formatPrice(data.markPrice, markDecimals))}
           </div>
         </div>
         <div className="text-right">
@@ -189,7 +193,7 @@ export function PnlCard({ data }: PnlCardProps) {
                 <div className="text-[#4A5568] text-[4px] tracking-[0.5px] leading-none mt-[1px]">••••••••</div>
               </div>
             ) : (
-              renderNumberWithStyledComma(formatPrice(data.liqPrice, priceDecimals))
+              renderNumberWithStyledComma(formatPrice(data.liqPrice, entryDecimals))
             )}
           </div>
         </div>
