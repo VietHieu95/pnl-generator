@@ -31,14 +31,40 @@ export function PnlCard({ data }: PnlCardProps) {
   };
 
   const getPriceDecimals = () => {
+    const symbol = data.symbol.toUpperCase();
+
+    // Binance Futures price precision per base asset (matches app.binance.com)
+    // BTC: 1dp (e.g. 84234.5), ETH/BNB/SOL etc: 2dp, low-value: more
+    const SYMBOL_PRECISION: Record<string, number> = {
+      BTC: 1,
+      ETH: 2,
+      BNB: 2,
+      SOL: 3,
+      XRP: 4,
+      ADA: 5,
+      DOGE: 5,
+      AVAX: 3,
+      DOT: 3,
+      LINK: 3,
+      MATIC: 4,
+      LTC: 2,
+      BCH: 2,
+      ATOM: 3,
+      UNI: 3,
+      NEAR: 4,
+    };
+
+    // Extract base asset from symbol (e.g. BTCUSDT → BTC, ETHBUSD → ETH)
+    const base = symbol.replace(/USDT$|BUSD$|USD$/, "");
+    if (SYMBOL_PRECISION[base] !== undefined) {
+      return SYMBOL_PRECISION[base];
+    }
+
+    // Fallback: derive from user-entered price
     const entryStr = data.entryPrice.toString().split(".")[1] || "";
     const markStr = data.markPrice.toString().split(".")[1] || "";
-
     let dec = Math.max(entryStr.length, markStr.length);
-
-    // Usually Binance shows 2+ decimals for values over $1
     if (dec < 2 && data.entryPrice >= 1) dec = 2;
-    // Don't go crazy on decimals
     if (dec > 8) dec = 8;
     return dec;
   };
