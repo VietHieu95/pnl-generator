@@ -1,9 +1,8 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { pnlDataSchema } from "@shared/schema";
+import { type PnlData } from "@shared/schema";
 import { calculatePnlValues } from "@shared/calculations";
-import puppeteer from "puppeteer";
 import { getBrowser } from "./browser";
 
 // -------------------------------------------------------------------
@@ -16,6 +15,79 @@ interface CacheEntry {
 }
 const imageCache = new Map<string, CacheEntry>();
 const CACHE_TTL_MS = 60_000;
+
+function inferSizeUnit(symbol?: string): string | undefined {
+  if (!symbol) return undefined;
+
+  const normalized = symbol.trim().toUpperCase();
+  for (const quote of ["USDT", "BUSD", "USDC", "FDUSD"]) {
+    if (normalized.endsWith(quote) && normalized.length > quote.length) {
+      return normalized.slice(0, -quote.length);
+    }
+  }
+
+  return undefined;
+}
+
+async function fetchBinanceMarkPrice(symbol: string): Promise<number> {
+  const normalized = symbol.trim().toUpperCase();
+  const endpoints = [
+    `https://fapi.binance.com/fapi/v1/ticker/price?symbol=${encodeURIComponent(normalized)}`,
+    `https://api.binance.com/api/v3/ticker/price?symbol=${encodeURIComponent(normalized)}`,
+  ];
+
+  let lastError: Error | null = null;
+
+  for (const endpoint of endpoints) {
+    try {
+      const response = await fetch(endpoint, {
+        headers: {
+          Accept: "application/json",
+          "User-Agent": "pnl-generator/1.0",
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      const payload = (await response.json()) as { price?: string };
+      const price = Number(payload.price);
+
+      if (!Number.isFinite(price) || price <= 0) {
+        throw new Error("Invalid price payload");
+      }
+
+      return price;
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error(String(error));
+    }
+  }
+
+  throw new Error(
+    `Unable to fetch live price for ${normalized}${lastError ? `: ${lastError.message}` : ""}`,
+  );
+}
+
+async function enrichPnlInput(data: Partial<PnlData>): Promise<Partial<PnlData>> {
+  const enriched: Partial<PnlData> = {
+    ...data,
+    symbol: data.symbol?.trim().toUpperCase() || data.symbol,
+  };
+  const rawMarkPrice = (data as { markPrice?: unknown }).markPrice;
+  const shouldFetchLivePrice =
+    rawMarkPrice === undefined || rawMarkPrice === null || rawMarkPrice === "";
+
+  if (!enriched.sizeUnit) {
+    enriched.sizeUnit = inferSizeUnit(enriched.symbol) || "BTC";
+  }
+
+  if (shouldFetchLivePrice && enriched.symbol) {
+    enriched.markPrice = await fetchBinanceMarkPrice(enriched.symbol);
+  }
+
+  return enriched;
+}
 
 function getCached(key: string): Buffer | null {
   const entry = imageCache.get(key);
@@ -54,11 +126,14 @@ export async function registerRoutes(
 
   app.post("/api/pnl", async (req, res) => {
     try {
-      const calculatedData = calculatePnlValues(req.body);
+      const input = await enrichPnlInput(req.body);
+      const calculatedData = calculatePnlValues(input);
       const data = await storage.updatePnlData(calculatedData);
       res.json(data);
     } catch (error: any) {
-      res.status(400).json({ message: error.message || "Invalid PNL data" });
+      const message = error?.message || "Invalid PNL data";
+      const status = message.includes("Unable to fetch live price") ? 502 : 400;
+      res.status(status).json({ message });
     }
   });
 
@@ -129,6 +204,4 @@ export async function registerRoutes(
 
   return httpServer;
 }
-
-
 
