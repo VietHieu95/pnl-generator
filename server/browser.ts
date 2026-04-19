@@ -25,18 +25,18 @@ export async function getBrowser(): Promise<Browser> {
         const isVercel = process.env.VERCEL === "1";
         
         if (isVercel) {
-            const chromium = require("@sparticuz/chromium");
-            const puppeteer = require("puppeteer-core");
+            const chromium = (await import("@sparticuz/chromium")).default;
+            const puppeteer = (await import("puppeteer-core")).default;
             
-            browser = await puppeteer.launch({
+            browser = await (puppeteer as any).launch({
                 args: chromium.args,
                 defaultViewport: chromium.defaultViewport,
                 executablePath: await chromium.executablePath(),
                 headless: chromium.headless,
             });
         } else {
-            const puppeteer = require("puppeteer");
-            browser = await puppeteer.launch({
+            const puppeteer = (await import("puppeteer")).default;
+            browser = await (puppeteer as any).launch({
                 args: ["--no-sandbox", "--disable-setuid-sandbox"],
                 executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
                 headless: true,
