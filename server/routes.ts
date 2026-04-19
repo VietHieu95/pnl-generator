@@ -277,15 +277,19 @@ export async function registerRoutes(
       });
       const urlParams = params.toString();
 
-      // 6. Leverage existing image generation logic (Refactor into a shared function would be better, but we'll call/redirect or internal call)
-      // For now, let's just perform the screenshot here to be 100% reliable for n8n
-      const port = process.env.PORT || 3000;
+      // 6. Leverage existing image generation logic
       const browser = await getBrowser();
       const page = await browser.newPage();
       
       try {
         await page.setViewport({ width: 480, height: 280, deviceScaleFactor: 4 });
-        const url = `http://127.0.0.1:${port}/isolated-card?${urlParams}`;
+        
+        // Dynamic URL detection for Vercel vs Local
+        const host = req.headers.host || "localhost:3000";
+        const protocol = req.headers['x-forwarded-proto'] || "http";
+        const url = `${protocol}://${host}/isolated-card?${urlParams}`;
+        
+        console.log(`[Screenshot] Taking screenshot of: ${url}`);
         
         await page.goto(url, { waitUntil: "networkidle0", timeout: 60000 });
         const selector = "#pnl-card-container";
@@ -325,14 +329,16 @@ export async function registerRoutes(
         return res.send(cached);
       }
 
-      const port = process.env.PORT || 3000;
       const browser = await getBrowser();
       page = await browser.newPage();
 
       // Set high resolution viewport (4x for maximum sharpness)
       await page.setViewport({ width: 480, height: 280, deviceScaleFactor: 4 });
 
-      const url = `http://127.0.0.1:${port}/isolated-card${urlParams ? `?${urlParams}` : ""}`;
+      // Dynamic URL detection
+      const host = req.headers.host || "localhost:3000";
+      const protocol = req.headers['x-forwarded-proto'] || "http";
+      const url = `${protocol}://${host}/isolated-card${urlParams ? `?${urlParams}` : ""}`;
 
       try {
         await page.goto(url, {
