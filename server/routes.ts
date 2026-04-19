@@ -302,9 +302,10 @@ export async function registerRoutes(
         // Dynamic URL detection for Vercel vs Local
         const host = req.headers.host || "localhost:3000";
         const protocol = req.headers['x-forwarded-proto'] || "http";
-        const url = `${protocol}://${host}/isolated-card?${urlParams}`;
+        // Added _t timestamp as cache-buster to ensure Puppeteer always renders fresh data
+        const url = `${protocol}://${host}/isolated-card?${urlParams}&_t=${Date.now()}`;
         
-        console.log(`[Screenshot] Taking screenshot of: ${url}`);
+        console.log(`[Scalp-API] Account requested new image. Selected: ${calculatedData.symbol} | Profit: $${calculatedData.unrealizedPnl} | Type: ${calculatedData.positionType}`);
         
         await page.goto(url, { waitUntil: "networkidle0", timeout: 60000 });
         const selector = "#pnl-card-container";
