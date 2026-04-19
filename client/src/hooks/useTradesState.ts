@@ -208,7 +208,7 @@ export function useTradesState() {
       const range = { min: Math.min(...prices), max: Math.max(...prices) };
 
       // 3. Calc Entry
-      const targetProfit = 12000 + Math.random() * 6000;
+      const targetProfit = 8000 + Math.random() * 12000;
       const positionType = active.positionType || "Long";
       let entryPrice: number;
       
@@ -269,7 +269,7 @@ export function useTradesState() {
       const range = { min: Math.min(...prices), max: Math.max(...prices) };
 
       // 3. Calc Entry (Realistic win)
-      const targetProfit = 12000 + Math.random() * 6000;
+      const targetProfit = 8000 + Math.random() * 12000;
       const upperBound = Math.min(range.max, markPrice * 0.999);
       const lowerBound = range.min;
       const entryPrice = upperBound > lowerBound ? lowerBound + (Math.random() * (upperBound - lowerBound) * 0.8) : markPrice * 0.95;

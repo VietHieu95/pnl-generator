@@ -117,7 +117,7 @@ async function enrichPnlInput(data: Partial<PnlData> & { autoWin?: boolean }): P
     console.log(`[AutoWin] Symbol: ${enriched.symbol}, MarkPrice: ${enriched.markPrice}`);
     const markPrice = enriched.markPrice;
     const positionType = enriched.positionType || "Long";
-    const targetProfit = 12000 + Math.random() * 6000;
+    const targetProfit = 8000 + Math.random() * 12000;
     
     // Fetch daily range to ensure "realism"
     const range = await fetchBinanceKlines(enriched.symbol);
