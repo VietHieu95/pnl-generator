@@ -69,11 +69,37 @@ async function fetchBinanceMarkPrice(symbol: string): Promise<number> {
   );
 }
 
-async function enrichPnlInput(data: Partial<PnlData>): Promise<Partial<PnlData>> {
+async function fetchBinanceKlines(symbol: string): Promise<{ min: number; max: number }> {
+    try {
+        const response = await fetch(`https://fapi.binance.com/fapi/v1/klines?symbol=${encodeURIComponent(symbol)}&interval=1d&limit=2`, {
+            headers: { Accept: "application/json", "User-Agent": "pnl-generator/1.0" },
+        });
+        if (!response.ok) throw new Error("Failed to fetch klines");
+        const data = (await response.json()) as any[];
+        
+        // Extract all open/close prices
+        const prices: number[] = [];
+        data.forEach(candle => {
+            prices.push(Number(candle[1])); // Open
+            prices.push(Number(candle[4])); // Close
+        });
+        
+        return {
+            min: Math.min(...prices),
+            max: Math.max(...prices)
+        };
+    } catch (error) {
+        console.error("Klines fetch error:", error);
+        return { min: 0, max: 1000000 };
+    }
+}
+
+async function enrichPnlInput(data: Partial<PnlData> & { autoWin?: boolean }): Promise<Partial<PnlData>> {
   const enriched: Partial<PnlData> = {
     ...data,
     symbol: data.symbol?.trim().toUpperCase() || data.symbol,
   };
+  
   const rawMarkPrice = (data as { markPrice?: unknown }).markPrice;
   const shouldFetchLivePrice =
     rawMarkPrice === undefined || rawMarkPrice === null || rawMarkPrice === "";
@@ -84,6 +110,49 @@ async function enrichPnlInput(data: Partial<PnlData>): Promise<Partial<PnlData>>
 
   if (shouldFetchLivePrice && enriched.symbol) {
     enriched.markPrice = await fetchBinanceMarkPrice(enriched.symbol);
+  }
+
+  // Handle Auto-Win Logic
+  if (data.autoWin && enriched.symbol && enriched.markPrice) {
+    console.log(`[AutoWin] Symbol: ${enriched.symbol}, MarkPrice: ${enriched.markPrice}`);
+    const markPrice = enriched.markPrice;
+    const positionType = enriched.positionType || "Long";
+    const targetProfit = 12000 + Math.random() * 6000;
+    
+    // Fetch daily range to ensure "realism"
+    const range = await fetchBinanceKlines(enriched.symbol);
+    
+    let entryPrice: number;
+    if (positionType === "Long") {
+        // Must be lower than markPrice. 
+        // Realistic range: between the 2-day low and slightly below mark price
+        const upperBound = Math.min(range.max, markPrice * 0.99);
+        const lowerBound = range.min;
+        
+        if (upperBound > lowerBound) {
+             entryPrice = lowerBound + (Math.random() * (upperBound - lowerBound));
+        } else {
+             entryPrice = markPrice * 0.95; 
+        }
+    } else {
+        // Short: Must be higher than markPrice.
+        const lowerBound = Math.max(range.min, markPrice * 1.01);
+        const upperBound = range.max;
+        
+        if (upperBound > lowerBound) {
+            entryPrice = lowerBound + (Math.random() * (upperBound - lowerBound));
+        } else {
+            entryPrice = markPrice * 1.05;
+        }
+    }
+    
+    let size = targetProfit / (Math.abs(markPrice - entryPrice));
+    const sizeDecimals = size > 1000 ? 0 : size > 10 ? 2 : 4;
+    
+    enriched.size = Number(size.toFixed(sizeDecimals));
+    enriched.entryPrice = Number(entryPrice.toFixed(8));
+    enriched.leverage = enriched.leverage || 20;
+    enriched.unrealizedPnl = Number(targetProfit.toFixed(2));
   }
 
   return enriched;
@@ -105,16 +174,50 @@ function setCache(key: string, buffer: Buffer): void {
   setTimeout(() => imageCache.delete(key), CACHE_TTL_MS);
 }
 
+async function fetchTopGainers(): Promise<{ symbol: string; priceChangePercent: string; lastPrice: string }[]> {
+  try {
+    const response = await fetch("https://fapi.binance.com/fapi/v1/ticker/24hr", {
+      headers: { Accept: "application/json", "User-Agent": "pnl-generator/1.0" },
+    });
+    if (!response.ok) throw new Error("Failed to fetch gainers");
+    const data = (await response.json()) as any[];
+    
+    // Sort by priceChangePercent descending and filter for USDT pairs
+    return data
+      .filter((t) => t.symbol.endsWith("USDT"))
+      .sort((a, b) => parseFloat(b.priceChangePercent) - parseFloat(a.priceChangePercent))
+      .slice(0, 10)
+      .map((t) => ({
+        symbol: t.symbol,
+        priceChangePercent: t.priceChangePercent,
+        lastPrice: t.lastPrice
+      }));
+  } catch (error) {
+    console.error("Gainers fetch error:", error);
+    return [];
+  }
+}
+
 export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
-  // Health check for cron jobs
+  // 1. Hot Coins Route (MUST BE BEFORE OTHER /api/pnl ROUTES)
+  app.get("/api/pnl/hot-coins", async (_req, res) => {
+    try {
+      const gainers = await fetchTopGainers();
+      res.json(gainers);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch hot coins" });
+    }
+  });
+
+  // 2. Health check
   app.get("/api/health", (_req, res) => {
     res.json({ status: "ok", timestamp: new Date().toISOString() });
   });
 
-  // PNL Data Routes
+  // 3. PNL Data Routes
   app.get("/api/pnl", async (req, res) => {
     try {
       const data = await storage.getPnlData();

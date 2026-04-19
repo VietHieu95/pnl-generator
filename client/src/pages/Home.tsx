@@ -8,6 +8,7 @@ import { Download, Image, RotateCcw, Plus, X, Activity } from "lucide-react";
 import { useTradesState } from "@/hooks/useTradesState";
 import { useTradeExport } from "@/hooks/useTradeExport";
 import { useBinanceTicker } from "@/hooks/useBinanceTicker";
+import { HotCoins } from "@/components/HotCoins";
 
 export default function Home() {
   const {
@@ -23,6 +24,8 @@ export default function Home() {
     updateActiveTrade,
     updateTradePrice,
     resetActiveTrade,
+    generateAutoWin,
+    scalpHotCoin,
   } = useTradesState();
 
   const cardRef = useRef<HTMLDivElement>(null);
@@ -112,8 +115,14 @@ export default function Home() {
 
       <main className="w-full max-w-7xl mx-auto px-3 py-4 md:py-8">
         <div className="grid lg:grid-cols-2 gap-6 items-start">
-          <div className="w-full min-w-0">
-            <PnlForm data={activeTrade} onChange={updateActiveTrade} isLive={isLive} />
+          <div className="w-full min-w-0 space-y-4">
+            <HotCoins onSelect={scalpHotCoin} />
+            <PnlForm 
+              data={activeTrade} 
+              onChange={updateActiveTrade} 
+              onAutoWin={generateAutoWin}
+              isLive={isLive} 
+            />
           </div>
 
           <div className="lg:sticky lg:top-24 space-y-5 w-full min-w-0">

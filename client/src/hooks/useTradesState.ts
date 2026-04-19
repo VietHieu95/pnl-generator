@@ -187,6 +187,48 @@ export function useTradesState() {
     toast({ title: "Reset complete", description: "Active trade values reset, Capital remains saved." });
   }, [activeId, toast]);
 
+  const generateAutoWin = useCallback(async () => {
+    lastEditTime.current = Date.now();
+    try {
+      const res = await apiRequest("POST", "/api/pnl", { 
+        ...activeTrade, 
+        autoWin: true 
+      });
+      const data = await res.json();
+      setTrades((prev) => prev.map((t) => (t.id === activeId ? { ...t, ...data, id: t.id } : t)));
+      toast({ 
+        title: "Magic Win Generated!", 
+        description: "Lệnh đã được tính toán khớp lưu với giá chart realtime." 
+      });
+    } catch (error) {
+      toast({ title: "Failed to generate win", variant: "destructive" });
+    }
+  }, [activeTrade, activeId, toast]);
+
+  const scalpHotCoin = useCallback(async (symbol: string) => {
+    lastEditTime.current = Date.now();
+    try {
+      // First update symbol locally
+      setTrades((prev) => prev.map((t) => (t.id === activeId ? { ...t, symbol, id: t.id } : t)));
+      
+      // Then trigger auto-win with the new symbol
+      const res = await apiRequest("POST", "/api/pnl", { 
+        symbol,
+        positionType: "Long",
+        autoWin: true 
+      });
+      const data = await res.json();
+      setTrades((prev) => prev.map((t) => (t.id === activeId ? { ...t, ...data, id: t.id } : t)));
+      
+      toast({ 
+        title: `Scalping ${symbol}!`, 
+        description: "Đã tạo vị thế nhồi lệnh theo sóng tăng của coin hot." 
+      });
+    } catch (error) {
+      toast({ title: "Failed to scalp", variant: "destructive" });
+    }
+  }, [activeId, toast]);
+
   return {
     trades,
     activeId,
@@ -200,5 +242,7 @@ export function useTradesState() {
     updateActiveTrade,
     updateTradePrice,
     resetActiveTrade,
+    generateAutoWin,
+    scalpHotCoin,
   };
 }

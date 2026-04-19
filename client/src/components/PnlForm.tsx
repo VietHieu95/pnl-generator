@@ -5,16 +5,27 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 
+import { Wand2 } from "lucide-react";
+
 interface PnlFormProps {
   data: PnlData;
   onChange: (data: PnlData) => void;
+  onAutoWin?: () => void;
   isLive?: boolean;
 }
 
-export function PnlForm({ data, onChange, isLive = false }: PnlFormProps) {
+export function PnlForm({ data, onChange, onAutoWin, isLive = false }: PnlFormProps) {
   // Local editing state: preserves raw text (including commas) while user is typing
   // Fixes iOS keyboard comma decimal separator issue
   const [editingValues, setEditingValues] = useState<Partial<Record<string, string>>>({});
+  const [isGenerating, setIsGenerating] = useState(false);
+
+  const handleAutoWin = async () => {
+    if (!onAutoWin) return;
+    setIsGenerating(true);
+    await onAutoWin();
+    setIsGenerating(false);
+  };
 
   const handleFieldChange = (field: keyof PnlData, value: string | number) => {
     const newData = { ...data, [field]: value };
@@ -61,8 +72,19 @@ export function PnlForm({ data, onChange, isLive = false }: PnlFormProps) {
   return (
     <div className="w-full space-y-4 p-3 md:p-5 bg-white/2 rounded-2xl border border-white/5 shadow-xl backdrop-blur-sm">
       <div className="flex items-center justify-between px-1">
-        <h3 className="text-[11px] font-black text-muted-foreground/60 uppercase tracking-[0.2em]">Position Settings</h3>
-        <span className="text-[9px] bg-primary/10 text-primary px-2 py-0.5 rounded-full font-bold">MODE: {data.type}</span>
+        <div className="flex flex-col">
+          <h3 className="text-[11px] font-black text-muted-foreground/60 uppercase tracking-[0.2em]">Position Settings</h3>
+          <span className="text-[9px] text-primary/40 font-bold">MODE: {data.type}</span>
+        </div>
+        <Button
+          onClick={handleAutoWin}
+          disabled={isGenerating}
+          size="sm"
+          className="h-8 px-4 bg-primary text-primary-foreground font-black text-[10px] uppercase tracking-wider shadow-[0_0_20px_rgba(243,186,47,0.3)] hover:shadow-[0_0_30px_rgba(243,186,47,0.5)] transition-all flex items-center gap-2"
+        >
+          <Wand2 className={`w-3 h-3 ${isGenerating ? "animate-spin" : ""}`} />
+          {isGenerating ? "Tính toán..." : "Magic Win"}
+        </Button>
       </div>
 
       <div className="grid grid-cols-2 gap-3 w-full min-w-0">
