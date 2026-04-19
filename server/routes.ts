@@ -179,10 +179,9 @@ async function fetchTopGainers(): Promise<{ symbol: string; priceChangePercent: 
     const response = await fetch("https://fapi.binance.com/fapi/v1/ticker/24hr", {
       headers: { Accept: "application/json", "User-Agent": "pnl-generator/1.0" },
     });
-    if (!response.ok) throw new Error("Failed to fetch gainers");
+    if (!response.ok) throw new Error("Failed to fetch markets");
     const data = (await response.json()) as any[];
     
-    // Sort by priceChangePercent descending and filter for USDT pairs
     return data
       .filter((t) => t.symbol.endsWith("USDT"))
       .sort((a, b) => parseFloat(b.priceChangePercent) - parseFloat(a.priceChangePercent))
@@ -194,6 +193,29 @@ async function fetchTopGainers(): Promise<{ symbol: string; priceChangePercent: 
       }));
   } catch (error) {
     console.error("Gainers fetch error:", error);
+    return [];
+  }
+}
+
+async function fetchTopLosers(): Promise<{ symbol: string; priceChangePercent: string; lastPrice: string }[]> {
+  try {
+    const response = await fetch("https://fapi.binance.com/fapi/v1/ticker/24hr", {
+      headers: { Accept: "application/json", "User-Agent": "pnl-generator/1.0" },
+    });
+    if (!response.ok) throw new Error("Failed to fetch markets");
+    const data = (await response.json()) as any[];
+    
+    return data
+      .filter((t) => t.symbol.endsWith("USDT"))
+      .sort((a, b) => parseFloat(a.priceChangePercent) - parseFloat(b.priceChangePercent))
+      .slice(0, 10)
+      .map((t) => ({
+        symbol: t.symbol,
+        priceChangePercent: t.priceChangePercent,
+        lastPrice: t.lastPrice
+      }));
+  } catch (error) {
+    console.error("Losers fetch error:", error);
     return [];
   }
 }
@@ -243,18 +265,20 @@ export async function registerRoutes(
   // 4. Specialized n8n API: Auto-Scalp Hot Coins & Return Image
   app.get("/api/pnl/scalp-image", async (req, res) => {
     try {
-      // 1. Get Top 10 Hot Coins
-      const hotCoins = await fetchTopGainers();
-      if (hotCoins.length === 0) throw new Error("No hot coins found");
+      // 1. Randomly decide trend: 60% Gainer (Long), 40% Loser (Short)
+      const isGainerTrend = Math.random() > 0.4;
+      const coins = isGainerTrend ? await fetchTopGainers() : await fetchTopLosers();
       
-      // 2. Pick a RANDOM coin from the Top 5 (to avoid all accounts posting the same coin)
-      const topPool = hotCoins.slice(0, 5);
+      if (coins.length === 0) throw new Error("No market data found");
+      
+      // 2. Pick a RANDOM coin from the Top 5
+      const topPool = coins.slice(0, 5);
       const targetCoin = topPool[Math.floor(Math.random() * topPool.length)];
       
-      // 3. Generate Magic Win Data for this coin with randomized jitter
+      // 3. Generate Magic Win Data for this coin
       const pnlInput = await enrichPnlInput({
         symbol: targetCoin.symbol,
-        positionType: Math.random() > 0.1 ? "Long" : "Short", // 90% Long for gainers, 10% Short scalp
+        positionType: isGainerTrend ? "Long" : "Short",
         autoWin: true
       });
       
