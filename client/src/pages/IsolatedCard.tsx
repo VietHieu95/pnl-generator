@@ -4,8 +4,8 @@ import { PnlData, pnlDataSchema } from "@shared/schema";
 import { PnlCard } from "@/components/PnlCard";
 
 export default function IsolatedCard() {
-    const search = useSearch();
-    const queryParams = new URLSearchParams(search);
+    // Use window.location.search for more reliable parameter detection in all environments
+    const queryParams = new URLSearchParams(window.location.search);
 
     // Check if we have at least 'symbol' to consider it a stateless request
     const hasParams = queryParams.has("symbol");

@@ -275,9 +275,12 @@ export async function registerRoutes(
       
       if (coins.length === 0) throw new Error("No market data found");
       
-      // 2. Pick a RANDOM coin from the Top 5
-      const topPool = coins.slice(0, 5);
+      // 2. Pick a RANDOM coin from the Top 10 (wider pool to avoid duplicates)
+      const topPool = coins.slice(0, 10);
       const targetCoin = topPool[Math.floor(Math.random() * topPool.length)];
+      
+      // Add a random shift to entry price to jitter ROI even if profit is fixed
+      const roiJitter = 0.9 + Math.random() * 0.2; // 0.9x to 1.1x jitter
       
       // 3. Generate Magic Win Data for this coin
       const pnlInput = await enrichPnlInput({
