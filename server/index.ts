@@ -94,7 +94,8 @@ import { getBrowser, closeBrowser } from "./browser";
   const port = parseInt(process.env.PORT || "3000", 10);
 
   // Pre-initialize browser in production to speed up first request
-  if (process.env.NODE_ENV === "production") {
+  // Disabled on Vercel as it doesn't support local puppeteer easily
+  if (process.env.NODE_ENV === "production" && !process.env.VERCEL) {
     getBrowser().catch(err => console.error("Initial browser launch failed", err));
   }
 
