@@ -240,7 +240,65 @@ export async function registerRoutes(
     }
   });
 
-  // PNL Image Export Route
+  // 4. Specialized n8n API: Auto-Scalp Hot Coins & Return Image
+  app.get("/api/pnl/scalp-image", async (_req, res) => {
+    try {
+      // 1. Get Hot Coins
+      const hotCoins = await fetchTopGainers();
+      if (hotCoins.length === 0) throw new Error("No hot coins found");
+      
+      // 2. Pick the hottest one
+      const targetCoin = hotCoins[0];
+      
+      // 3. Generate Magic Win Data for this coin
+      const pnlInput = await enrichPnlInput({
+        symbol: targetCoin.symbol,
+        positionType: "Long",
+        autoWin: true
+      });
+      
+      // 4. Calculate final values and save (optional, but good for consistency)
+      const calculatedData = calculatePnlValues(pnlInput);
+      await storage.updatePnlData(calculatedData);
+      
+      // 5. Generate Image URL Params
+      const params = new URLSearchParams();
+      Object.entries(calculatedData).forEach(([k, v]) => {
+          if (v !== undefined && v !== null) params.append(k, String(v));
+      });
+      const urlParams = params.toString();
+
+      // 6. Leverage existing image generation logic (Refactor into a shared function would be better, but we'll call/redirect or internal call)
+      // For now, let's just perform the screenshot here to be 100% reliable for n8n
+      const port = process.env.PORT || 3000;
+      const browser = await getBrowser();
+      const page = await browser.newPage();
+      
+      try {
+        await page.setViewport({ width: 480, height: 280, deviceScaleFactor: 4 });
+        const url = `http://127.0.0.1:${port}/isolated-card?${urlParams}`;
+        
+        await page.goto(url, { waitUntil: "networkidle0", timeout: 60000 });
+        const selector = "#pnl-card-container";
+        await page.waitForSelector(selector, { timeout: 30000 });
+        const element = await page.$(selector);
+        
+        if (!element) throw new Error("Card container not found");
+        
+        const imageBuffer = await element.screenshot({ type: "png", omitBackground: true });
+        
+        res.set("Content-Type", "image/png");
+        res.send(Buffer.from(imageBuffer));
+      } finally {
+        await page.close();
+      }
+    } catch (error: any) {
+      console.error("Scalp-Image API Error:", error);
+      res.status(500).json({ message: "Auto-Scalp Image Failed", error: error.message });
+    }
+  });
+
+  // 5. PNL Image Export Route
   app.get("/api/pnl/image", async (req, res) => {
     let page;
     try {
