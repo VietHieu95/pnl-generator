@@ -1,8 +1,8 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { type PnlData } from "@shared/schema";
-import { calculatePnlValues } from "@shared/calculations";
+import { type PnlData } from "../shared/schema";
+import { calculatePnlValues } from "../shared/calculations";
 import { getBrowser } from "./browser";
 
 // -------------------------------------------------------------------

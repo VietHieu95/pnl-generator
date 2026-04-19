@@ -1,4 +1,4 @@
-import { type User, type InsertUser, type PnlData, pnlDataSchema } from "@shared/schema";
+import { type User, type InsertUser, type PnlData, pnlDataSchema } from "../shared/schema";
 import { randomUUID } from "crypto";
 
 export interface IStorage {
