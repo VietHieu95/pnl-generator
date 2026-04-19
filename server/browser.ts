@@ -1,5 +1,5 @@
-import puppeteer, { Browser } from "puppeteer";
 import { log } from "./index";
+import type { Browser } from "puppeteer-core";
 
 let browser: Browser | null = null;
 let isInitializing = false;
@@ -10,7 +10,6 @@ export async function getBrowser(): Promise<Browser> {
     }
 
     if (isInitializing) {
-        // Wait for the initialization to complete
         while (isInitializing) {
             await new Promise((resolve) => setTimeout(resolve, 100));
         }
@@ -22,26 +21,34 @@ export async function getBrowser(): Promise<Browser> {
     isInitializing = true;
     try {
         log("Initializing shared browser instance...", "puppeteer");
-        browser = await puppeteer.launch({
-            args: [
-                "--no-sandbox",
-                "--disable-setuid-sandbox",
-                "--disable-dev-shm-usage",
-                "--disable-accelerated-2d-canvas",
-                "--no-first-run",
-                "--no-zygote",
-                "--disable-gpu",
-            ],
-            headless: true,
-        });
+        
+        const isVercel = process.env.VERCEL === "1";
+        
+        if (isVercel) {
+            const chromium = require("@sparticuz/chromium");
+            const puppeteer = require("puppeteer-core");
+            
+            browser = await puppeteer.launch({
+                args: chromium.args,
+                defaultViewport: chromium.defaultViewport,
+                executablePath: await chromium.executablePath(),
+                headless: chromium.headless,
+            });
+        } else {
+            const puppeteer = require("puppeteer");
+            browser = await puppeteer.launch({
+                args: ["--no-sandbox", "--disable-setuid-sandbox"],
+                headless: true,
+            });
+        }
 
-        browser.on("disconnected", () => {
-            log("Shared browser disconnected. It will be re-initialized on next request.", "puppeteer");
+        browser!.on("disconnected", () => {
+            log("Shared browser disconnected.", "puppeteer");
             browser = null;
         });
 
         log("Shared browser initialized successfully.", "puppeteer");
-        return browser;
+        return browser!;
     } catch (error) {
         log(`Failed to initialize shared browser: ${error}`, "puppeteer");
         browser = null;

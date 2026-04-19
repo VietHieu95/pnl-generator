@@ -9,3 +9,4 @@ vite.config.ts.*
 Inter-4.1/
 .env*.png
 .dockerignore
+.vercel

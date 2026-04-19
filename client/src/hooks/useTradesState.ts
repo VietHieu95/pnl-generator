@@ -233,7 +233,13 @@ export function useTradesState() {
         unrealizedPnl: Number(targetProfit.toFixed(2)),
       };
 
-      setTrades((prev) => prev.map((t) => (t.id === activeId ? { ...t, ...autoWinData, id: t.id } : t)));
+      // 6. Full Refresh of PNL Values (ROI, liqPrice, etc.)
+      const updatedTrade = calculatePnlValues({ ...active, ...autoWinData }) as PnlData;
+
+      setTrades((prev) => prev.map((t) => (t.id === activeId ? { ...updatedTrade, id: t.id } : t)));
+      
+      // 7. Sync to Server immediately
+      updateServerPnl.mutate(updatedTrade);
       
       toast({ 
         title: "Magic Win Generated!", 
@@ -242,11 +248,14 @@ export function useTradesState() {
     } catch (error) {
       toast({ title: "Failed to generate win", variant: "destructive" });
     }
-  }, [activeId, trades, toast]);
+  }, [activeId, trades, updateServerPnl, toast]);
 
   const scalpHotCoin = useCallback(async (symbol: string) => {
     lastEditTime.current = Date.now();
     try {
+      const active = trades.find((t) => t.id === activeId);
+      if (!active) return;
+
       // 1. Fetch Mark Price
       const priceRes = await fetch(`https://fapi.binance.com/fapi/v1/ticker/price?symbol=${symbol}`);
       const priceData = await priceRes.json();
@@ -259,7 +268,7 @@ export function useTradesState() {
       klineData.forEach(c => { prices.push(Number(c[1])); prices.push(Number(c[4])); });
       const range = { min: Math.min(...prices), max: Math.max(...prices) };
 
-      // 3. Calc Entry
+      // 3. Calc Entry (Realistic win)
       const targetProfit = 12000 + Math.random() * 6000;
       const upperBound = Math.min(range.max, markPrice * 0.999);
       const lowerBound = range.min;
@@ -269,16 +278,31 @@ export function useTradesState() {
       let size = targetProfit / (Math.abs(markPrice - entryPrice));
       const sizeDecimals = size > 1000 ? 0 : size > 10 ? 2 : 4;
 
-      const autoWinData = {
+      // 5. Detect Unit
+      let sizeUnit = active.sizeUnit;
+      if (symbol.endsWith("USDT")) {
+        sizeUnit = symbol.replace("USDT", "");
+      } else if (symbol.endsWith("BUSD")) {
+        sizeUnit = symbol.replace("BUSD", "");
+      }
+
+      const rawData = {
+        ...active,
         symbol,
-        positionType: "Long",
+        sizeUnit,
+        positionType: "Long" as const,
         markPrice,
         entryPrice: Number(entryPrice.toFixed(8)),
         size: Number(size.toFixed(sizeDecimals)),
-        unrealizedPnl: Number(targetProfit.toFixed(2)),
       };
 
-      setTrades((prev) => prev.map((t) => (t.id === activeId ? { ...t, ...autoWinData, id: t.id } : t)));
+      // 6. Full Refresh of PNL Values (ROI, liqPrice, etc.)
+      const autoWinData = calculatePnlValues(rawData) as PnlData;
+
+      setTrades((prev) => prev.map((t) => (t.id === activeId ? { ...autoWinData, id: t.id } : t)));
+      
+      // 7. Sync to Server immediately to prevent polling overwrite
+      updateServerPnl.mutate(autoWinData);
       
       toast({ 
         title: `Scalping ${symbol}!`, 
@@ -287,7 +311,7 @@ export function useTradesState() {
     } catch (error) {
       toast({ title: "Failed to scalp", variant: "destructive" });
     }
-  }, [activeId, toast]);
+  }, [activeId, trades, updateServerPnl, toast]);
 
   return {
     trades,
