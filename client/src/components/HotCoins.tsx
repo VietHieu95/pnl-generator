@@ -14,8 +14,22 @@ interface HotCoinsProps {
 
 export function HotCoins({ onSelect }: HotCoinsProps) {
   const { data: hotCoins, isLoading } = useQuery<HotCoin[]>({
-    queryKey: ["/api/pnl/hot-coins"],
-    refetchInterval: 30000, // Refresh every 30s
+    queryKey: ["hot-coins-direct"],
+    queryFn: async () => {
+      const response = await fetch("https://fapi.binance.com/fapi/v1/ticker/24hr");
+      if (!response.ok) throw new Error("Failed to fetch from Binance");
+      const data = await response.json() as any[];
+      return data
+        .filter((t) => t.symbol.endsWith("USDT"))
+        .sort((a, b) => parseFloat(b.priceChangePercent) - parseFloat(a.priceChangePercent))
+        .slice(0, 10)
+        .map((t) => ({
+          symbol: t.symbol,
+          priceChangePercent: t.priceChangePercent,
+          lastPrice: t.lastPrice
+        }));
+    },
+    refetchInterval: 30000,
   });
 
   if (isLoading) return <div className="animate-pulse h-10 w-full bg-white/5 rounded-lg" />;

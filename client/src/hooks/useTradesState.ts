@@ -190,12 +190,51 @@ export function useTradesState() {
   const generateAutoWin = useCallback(async () => {
     lastEditTime.current = Date.now();
     try {
-      const res = await apiRequest("POST", "/api/pnl", { 
-        ...activeTrade, 
-        autoWin: true 
-      });
-      const data = await res.json();
-      setTrades((prev) => prev.map((t) => (t.id === activeId ? { ...t, ...data, id: t.id } : t)));
+      const active = trades.find((t) => t.id === activeId);
+      if (!active) return;
+      
+      const symbol = active.symbol;
+
+      // 1. Fetch Mark Price
+      const priceRes = await fetch(`https://fapi.binance.com/fapi/v1/ticker/price?symbol=${symbol}`);
+      const priceData = await priceRes.json();
+      const markPrice = Number(priceData.price);
+
+      // 2. Fetch Klines for range
+      const klineRes = await fetch(`https://fapi.binance.com/fapi/v1/klines?symbol=${symbol}&interval=1d&limit=2`);
+      const klineData = await klineRes.json() as any[];
+      const prices: number[] = [];
+      klineData.forEach(c => { prices.push(Number(c[1])); prices.push(Number(c[4])); });
+      const range = { min: Math.min(...prices), max: Math.max(...prices) };
+
+      // 3. Calc Entry
+      const targetProfit = 12000 + Math.random() * 6000;
+      const positionType = active.positionType || "Long";
+      let entryPrice: number;
+      
+      if (positionType === "Long") {
+        const upperBound = Math.min(range.max, markPrice * 0.999);
+        const lowerBound = range.min;
+        entryPrice = upperBound > lowerBound ? lowerBound + (Math.random() * (upperBound - lowerBound) * 0.8) : markPrice * 0.95;
+      } else {
+        const lowerBound = Math.max(range.min, markPrice * 1.001);
+        const upperBound = range.max;
+        entryPrice = upperBound > lowerBound ? lowerBound + (Math.random() * (upperBound - lowerBound) * 0.8) : markPrice * 1.05;
+      }
+
+      // 4. Calc Size
+      let size = targetProfit / (Math.abs(markPrice - entryPrice));
+      const sizeDecimals = size > 1000 ? 0 : size > 10 ? 2 : 4;
+
+      const autoWinData = {
+        markPrice,
+        entryPrice: Number(entryPrice.toFixed(8)),
+        size: Number(size.toFixed(sizeDecimals)),
+        unrealizedPnl: Number(targetProfit.toFixed(2)),
+      };
+
+      setTrades((prev) => prev.map((t) => (t.id === activeId ? { ...t, ...autoWinData, id: t.id } : t)));
+      
       toast({ 
         title: "Magic Win Generated!", 
         description: "Lệnh đã được tính toán khớp lưu với giá chart realtime." 
@@ -203,22 +242,43 @@ export function useTradesState() {
     } catch (error) {
       toast({ title: "Failed to generate win", variant: "destructive" });
     }
-  }, [activeTrade, activeId, toast]);
+  }, [activeId, trades, toast]);
 
   const scalpHotCoin = useCallback(async (symbol: string) => {
     lastEditTime.current = Date.now();
     try {
-      // First update symbol locally
-      setTrades((prev) => prev.map((t) => (t.id === activeId ? { ...t, symbol, id: t.id } : t)));
-      
-      // Then trigger auto-win with the new symbol
-      const res = await apiRequest("POST", "/api/pnl", { 
+      // 1. Fetch Mark Price
+      const priceRes = await fetch(`https://fapi.binance.com/fapi/v1/ticker/price?symbol=${symbol}`);
+      const priceData = await priceRes.json();
+      const markPrice = Number(priceData.price);
+
+      // 2. Fetch Klines for range
+      const klineRes = await fetch(`https://fapi.binance.com/fapi/v1/klines?symbol=${symbol}&interval=1d&limit=2`);
+      const klineData = await klineRes.json() as any[];
+      const prices: number[] = [];
+      klineData.forEach(c => { prices.push(Number(c[1])); prices.push(Number(c[4])); });
+      const range = { min: Math.min(...prices), max: Math.max(...prices) };
+
+      // 3. Calc Entry
+      const targetProfit = 12000 + Math.random() * 6000;
+      const upperBound = Math.min(range.max, markPrice * 0.999);
+      const lowerBound = range.min;
+      const entryPrice = upperBound > lowerBound ? lowerBound + (Math.random() * (upperBound - lowerBound) * 0.8) : markPrice * 0.95;
+
+      // 4. Calc Size
+      let size = targetProfit / (Math.abs(markPrice - entryPrice));
+      const sizeDecimals = size > 1000 ? 0 : size > 10 ? 2 : 4;
+
+      const autoWinData = {
         symbol,
         positionType: "Long",
-        autoWin: true 
-      });
-      const data = await res.json();
-      setTrades((prev) => prev.map((t) => (t.id === activeId ? { ...t, ...data, id: t.id } : t)));
+        markPrice,
+        entryPrice: Number(entryPrice.toFixed(8)),
+        size: Number(size.toFixed(sizeDecimals)),
+        unrealizedPnl: Number(targetProfit.toFixed(2)),
+      };
+
+      setTrades((prev) => prev.map((t) => (t.id === activeId ? { ...t, ...autoWinData, id: t.id } : t)));
       
       toast({ 
         title: `Scalping ${symbol}!`, 
