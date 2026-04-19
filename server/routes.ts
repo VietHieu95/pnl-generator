@@ -268,6 +268,9 @@ export async function registerRoutes(
 
   // 4. Specialized n8n API: Auto-Scalp Hot Coins & Return Image
   app.get("/api/pnl/scalp-image", async (req, res) => {
+    const reqId = Math.random().toString(36).substring(7);
+    console.log(`[Scalp-API-${reqId}] Incoming request from ${req.ip}`);
+    
     try {
       // 1. Randomly decide trend: 60% Gainer (Long), 40% Loser (Short)
       const isGainerTrend = Math.random() > 0.4;
@@ -279,6 +282,8 @@ export async function registerRoutes(
       const topPool = coins.slice(0, 10);
       const targetCoin = topPool[Math.floor(Math.random() * topPool.length)];
       
+      console.log(`[Scalp-API-${reqId}] Picked coin: ${targetCoin.symbol}, Trend: ${isGainerTrend ? "Gainer" : "Loser"}`);
+      
       // Add a random shift to entry price to jitter ROI even if profit is fixed
       const roiJitter = 0.9 + Math.random() * 0.2; // 0.9x to 1.1x jitter
       
@@ -286,8 +291,10 @@ export async function registerRoutes(
       const pnlInput = await enrichPnlInput({
         symbol: targetCoin.symbol,
         positionType: isGainerTrend ? "Long" : "Short",
-        autoWin: true
-      });
+        autoWin: true,
+        // Hack to guarantee object uniqueness if caching occurs upstream
+        _reqId: reqId
+      } as any);
       
       // 4. Calculate final values
       const calculatedData = calculatePnlValues(pnlInput);
