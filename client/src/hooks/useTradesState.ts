@@ -226,8 +226,12 @@ export function useTradesState() {
       let size = targetProfit / (Math.abs(markPrice - entryPrice));
       const sizeDecimals = size > 1000 ? 0 : size > 10 ? 2 : 4;
 
+      const leverageList = [20, 25, 30, 40, 50, 60, 75, 100, 125];
+      const leverage = leverageList[Math.floor(Math.random() * leverageList.length)];
+
       const autoWinData = {
         markPrice,
+        leverage,
         entryPrice: Number(entryPrice.toFixed(8)),
         size: Number(size.toFixed(sizeDecimals)),
         unrealizedPnl: Number(targetProfit.toFixed(2)),
@@ -286,10 +290,14 @@ export function useTradesState() {
         sizeUnit = symbol.replace("BUSD", "");
       }
 
+      const leverageList = [20, 25, 30, 40, 50, 60, 75, 100, 125];
+      const leverage = leverageList[Math.floor(Math.random() * leverageList.length)];
+
       const rawData = {
         ...active,
         symbol,
         sizeUnit,
+        leverage,
         positionType: "Long" as const,
         markPrice,
         entryPrice: Number(entryPrice.toFixed(8)),

@@ -151,7 +151,11 @@ async function enrichPnlInput(data: Partial<PnlData> & { autoWin?: boolean }): P
     
     enriched.size = Number(size.toFixed(sizeDecimals));
     enriched.entryPrice = Number(entryPrice.toFixed(8));
-    enriched.leverage = enriched.leverage || 20;
+    
+    // Randomized leverage between 20x and 75x to make ROI look unique for every post
+    const leverageList = [20, 25, 30, 40, 50, 60, 75];
+    enriched.leverage = leverageList[Math.floor(Math.random() * leverageList.length)];
+    
     enriched.unrealizedPnl = Number(targetProfit.toFixed(2));
   }
 
