@@ -38,6 +38,7 @@ export async function getBrowser(): Promise<Browser> {
             const puppeteer = require("puppeteer");
             browser = await puppeteer.launch({
                 args: ["--no-sandbox", "--disable-setuid-sandbox"],
+                executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
                 headless: true,
             });
         }
