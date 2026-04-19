@@ -243,6 +243,15 @@ export async function registerRoutes(
   // 4. Specialized n8n API: Auto-Scalp Hot Coins & Return Image
   app.get("/api/pnl/scalp-image", async (_req, res) => {
     try {
+      // --- 0. Optimization: Quick return if we have a recent hot image cached ---
+      const cacheKey = "LAST_HOT_SCALP_IMAGE";
+      const cachedImage = getCached(cacheKey);
+      if (cachedImage) {
+          res.set("Content-Type", "image/png");
+          res.set("X-Cache", "HIT-HOT-SCALP");
+          return res.send(cachedImage);
+      }
+
       // 1. Get Hot Coins
       const hotCoins = await fetchTopGainers();
       if (hotCoins.length === 0) throw new Error("No hot coins found");
@@ -286,9 +295,13 @@ export async function registerRoutes(
         if (!element) throw new Error("Card container not found");
         
         const imageBuffer = await element.screenshot({ type: "png", omitBackground: true });
+        const buffer = Buffer.from(imageBuffer);
+
+        // --- Cache miss: store result for 2 minutes specifically for hot scalp ---
+        setCache("LAST_HOT_SCALP_IMAGE", buffer);
         
         res.set("Content-Type", "image/png");
-        res.send(Buffer.from(imageBuffer));
+        res.send(buffer);
       } finally {
         await page.close();
       }
