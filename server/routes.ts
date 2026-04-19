@@ -241,7 +241,7 @@ export async function registerRoutes(
   });
 
   // 4. Specialized n8n API: Auto-Scalp Hot Coins & Return Image
-  app.get("/api/pnl/scalp-image", async (_req, res) => {
+  app.get("/api/pnl/scalp-image", async (req, res) => {
     try {
       // --- 0. Optimization: Quick return if we have a recent hot image cached ---
       const cacheKey = "LAST_HOT_SCALP_IMAGE";
