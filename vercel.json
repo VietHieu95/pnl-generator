@@ -1,9 +1,12 @@
 {
-    "framework": "vite",
+    "version": 2,
     "buildCommand": "npm run build",
     "outputDirectory": "dist/public",
-    "cleanUrls": true,
     "rewrites": [
+        {
+            "source": "/api/(.*)",
+            "destination": "/api/index.ts"
+        },
         {
             "source": "/(.*)",
             "destination": "/index.html"
