@@ -243,32 +243,23 @@ export async function registerRoutes(
   // 4. Specialized n8n API: Auto-Scalp Hot Coins & Return Image
   app.get("/api/pnl/scalp-image", async (req, res) => {
     try {
-      // --- 0. Optimization: Quick return if we have a recent hot image cached ---
-      const cacheKey = "LAST_HOT_SCALP_IMAGE";
-      const cachedImage = getCached(cacheKey);
-      if (cachedImage) {
-          res.set("Content-Type", "image/png");
-          res.set("X-Cache", "HIT-HOT-SCALP");
-          return res.send(cachedImage);
-      }
-
-      // 1. Get Hot Coins
+      // 1. Get Top 10 Hot Coins
       const hotCoins = await fetchTopGainers();
       if (hotCoins.length === 0) throw new Error("No hot coins found");
       
-      // 2. Pick the hottest one
-      const targetCoin = hotCoins[0];
+      // 2. Pick a RANDOM coin from the Top 5 (to avoid all accounts posting the same coin)
+      const topPool = hotCoins.slice(0, 5);
+      const targetCoin = topPool[Math.floor(Math.random() * topPool.length)];
       
-      // 3. Generate Magic Win Data for this coin
+      // 3. Generate Magic Win Data for this coin with randomized jitter
       const pnlInput = await enrichPnlInput({
         symbol: targetCoin.symbol,
-        positionType: "Long",
+        positionType: Math.random() > 0.1 ? "Long" : "Short", // 90% Long for gainers, 10% Short scalp
         autoWin: true
       });
       
-      // 4. Calculate final values and save (optional, but good for consistency)
+      // 4. Calculate final values
       const calculatedData = calculatePnlValues(pnlInput);
-      await storage.updatePnlData(calculatedData);
       
       // 5. Generate Image URL Params
       const params = new URLSearchParams();
@@ -277,7 +268,7 @@ export async function registerRoutes(
       });
       const urlParams = params.toString();
 
-      // 6. Leverage existing image generation logic
+      // 6. Generate Screenshot
       const browser = await getBrowser();
       const page = await browser.newPage();
       
@@ -300,9 +291,6 @@ export async function registerRoutes(
         
         const imageBuffer = await element.screenshot({ type: "png", omitBackground: true });
         const buffer = Buffer.from(imageBuffer);
-
-        // --- Cache miss: store result for 2 minutes specifically for hot scalp ---
-        setCache("LAST_HOT_SCALP_IMAGE", buffer);
         
         res.set("Content-Type", "image/png");
         res.send(buffer);
