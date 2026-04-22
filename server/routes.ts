@@ -15,6 +15,20 @@ interface CacheEntry {
 }
 const imageCache = new Map<string, CacheEntry>();
 const CACHE_TTL_MS = 60_000;
+const MAX_CACHE_SIZE = 100;
+
+// --- API Key Authentication ---
+const API_KEY = process.env.PNL_API_KEY || "dev-key-change-me";
+
+function requireApiKey(req: any, res: any, next: any) {
+  const key = req.query.api_key || req.headers["x-api-key"];
+  if (!key || key !== API_KEY) {
+    return res.status(401).json({ message: "Unauthorized: Invalid or missing API key" });
+  }
+  // Remove api_key from query so it doesn't pollute URL params
+  delete req.query.api_key;
+  next();
+}
 
 function inferSizeUnit(symbol?: string): string | undefined {
   if (!symbol) return undefined;
@@ -266,7 +280,54 @@ export async function registerRoutes(
     }
   });
 
-  // 4. Specialized n8n API: Auto-Scalp Hot Coins & Return Image
+  // 4. Specialized n8n API: Auto-Scalp Hot Coins & Return JSON Data
+  app.get("/api/pnl/scalp-json", async (req, res) => {
+    const reqId = Math.random().toString(36).substring(7);
+    
+    try {
+      const isGainerTrend = Math.random() > 0.4;
+      const coins = isGainerTrend ? await fetchTopGainers() : await fetchTopLosers();
+      
+      if (coins.length === 0) throw new Error("No market data found");
+      
+      const topPool = coins.slice(0, 10);
+      const targetCoin = topPool[Math.floor(Math.random() * topPool.length)];
+      
+      const pnlInput = await enrichPnlInput({
+        symbol: targetCoin.symbol,
+        positionType: isGainerTrend ? "Long" : "Short",
+        autoWin: true,
+        _reqId: reqId
+      } as any);
+      
+      const calculatedData = calculatePnlValues(pnlInput);
+      
+      const params = new URLSearchParams();
+      Object.entries(calculatedData).forEach(([k, v]) => {
+          if (v !== undefined && v !== null) params.append(k, String(v));
+      });
+      const urlParams = params.toString();
+      
+      const host = req.headers.host || "localhost:3000";
+      const protocol = req.headers['x-forwarded-proto'] || "http";
+      const imageUrl = `${protocol}://${host}/api/pnl/image?${urlParams}&_t=${Date.now()}`;
+      
+      res.json({
+        coin: calculatedData.symbol,
+        type: calculatedData.positionType,
+        roi: calculatedData.roi,
+        unrealizedPnl: calculatedData.unrealizedPnl,
+        entryPrice: calculatedData.entryPrice,
+        markPrice: calculatedData.markPrice,
+        imageUrl: imageUrl,
+      });
+    } catch (error: any) {
+      console.error("Scalp-JSON API Error:", error);
+      res.status(500).json({ message: "Auto-Scalp JSON Failed", error: error.message });
+    }
+  });
+
+  // 5. Specialized n8n API: Auto-Scalp Hot Coins & Return Image
   app.get("/api/pnl/scalp-image", async (req, res) => {
     const reqId = Math.random().toString(36).substring(7);
     console.log(`[Scalp-API-${reqId}] Incoming request from ${req.ip}`);
