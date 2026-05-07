@@ -83,19 +83,6 @@ async function fetchBinanceMarkPrice(symbol: string): Promise<number> {
   );
 }
 
-function getRequestedSymbols(value: unknown): string[] {
-  if (typeof value !== "string") return [];
-
-  return Array.from(
-    new Set(
-      value
-        .split(",")
-        .map((symbol) => symbol.trim().toUpperCase().replace(/[^A-Z0-9]/g, ""))
-        .filter(Boolean),
-    ),
-  );
-}
-
 async function fetchBinanceKlines(symbol: string): Promise<{ min: number; max: number }> {
     try {
         const response = await fetch(`https://fapi.binance.com/fapi/v1/klines?symbol=${encodeURIComponent(symbol)}&interval=1d&limit=2`, {
@@ -268,30 +255,6 @@ export async function registerRoutes(
   // 2. Health check
   app.get("/api/health", (_req, res) => {
     res.json({ status: "ok", timestamp: new Date().toISOString() });
-  });
-
-  app.get("/api/market-prices", async (req, res) => {
-    const symbols = getRequestedSymbols(req.query.symbols);
-    if (symbols.length === 0) {
-      return res.status(400).json({ message: "Missing symbols" });
-    }
-
-    const results = await Promise.allSettled(
-      symbols.map(async (symbol) => ({
-        symbol,
-        price: await fetchBinanceMarkPrice(symbol),
-      })),
-    );
-
-    const prices = results.flatMap((result) =>
-      result.status === "fulfilled" ? [result.value] : [],
-    );
-
-    if (prices.length === 0) {
-      return res.status(502).json({ message: "Unable to fetch live prices" });
-    }
-
-    res.json({ prices });
   });
 
   // 3. PNL Data Routes
@@ -509,3 +472,4 @@ export async function registerRoutes(
 
   return httpServer;
 }
+
