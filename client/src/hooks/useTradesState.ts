@@ -27,6 +27,10 @@ const defaultPnlData: PnlData = {
   slPrice: "--",
 };
 
+function normalizeSymbol(symbol: string): string {
+  return symbol.trim().toUpperCase().replace(/[^A-Z0-9]/g, "");
+}
+
 function loadTrades(): PnlData[] {
   try {
     const saved = localStorage.getItem("trades");
@@ -102,11 +106,15 @@ export function useTradesState() {
       prev.map((t) => {
         if (t.id !== activeId) return t;
         // Only update if symbol matches (safety check for async state)
-        if (serverPnl.symbol && t.symbol !== serverPnl.symbol) return t;
-        return { ...t, ...serverPnl, id: t.id };
+        if (
+          serverPnl.symbol &&
+          normalizeSymbol(t.symbol) !== normalizeSymbol(serverPnl.symbol)
+        ) return t;
+        const next = { ...t, ...serverPnl, id: t.id };
+        return isLive ? { ...next, markPrice: t.markPrice } : next;
       })
     );
-  }, [serverPnl, activeId]);
+  }, [serverPnl, activeId, isLive]);
 
   // --- Derived ---
   const activeTrade = trades.find((t) => t.id === activeId) || trades[0];
@@ -168,7 +176,7 @@ export function useTradesState() {
   const updateTradePrice = useCallback((symbol: string, price: number) => {
     setTrades((prev) =>
       prev.map((t) => {
-        if (t.symbol.toUpperCase() !== symbol.toUpperCase()) return t;
+        if (normalizeSymbol(t.symbol) !== normalizeSymbol(symbol)) return t;
         const updated = { ...t, markPrice: price };
         return calculatePnlValues(updated) as PnlData;
       })
