@@ -4,6 +4,10 @@
     "outputDirectory": "dist/public",
     "rewrites": [
         {
+            "source": "/api/market-prices",
+            "destination": "/api/market-prices.ts"
+        },
+        {
             "source": "/api/(.*)",
             "destination": "/api/index.ts"
         },
