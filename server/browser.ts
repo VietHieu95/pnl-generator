@@ -1,8 +1,18 @@
-import { log } from "./index";
-import type { Browser } from "puppeteer-core";
+import puppeteer, { type Browser } from "puppeteer-core";
 
 let browser: Browser | null = null;
 let isInitializing = false;
+
+function log(message: string, source = "puppeteer") {
+    const formattedTime = new Date().toLocaleTimeString("en-US", {
+        hour: "numeric",
+        minute: "2-digit",
+        second: "2-digit",
+        hour12: true,
+    });
+
+    console.log(`${formattedTime} [${source}] ${message}`);
+}
 
 export async function getBrowser(): Promise<Browser> {
     if (browser && browser.connected) {
@@ -25,20 +35,20 @@ export async function getBrowser(): Promise<Browser> {
         const isVercel = process.env.VERCEL === "1";
         
         if (isVercel) {
-            const chromium = (await import("@sparticuz/chromium")).default;
-            const puppeteer = (await import("puppeteer-core")).default;
+            const chromium = (await import("@sparticuz/chromium")).default as any;
             
             browser = await (puppeteer as any).launch({
                 args: chromium.args,
                 defaultViewport: chromium.defaultViewport,
                 executablePath: await chromium.executablePath(),
-                headless: chromium.headless,
+                headless: chromium.headless ?? true,
             });
         } else {
-            const puppeteer = (await import("puppeteer")).default;
             browser = await (puppeteer as any).launch({
                 args: ["--no-sandbox", "--disable-setuid-sandbox"],
-                executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
+                executablePath:
+                    process.env.PUPPETEER_EXECUTABLE_PATH ||
+                    "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
                 headless: true,
             });
         }
