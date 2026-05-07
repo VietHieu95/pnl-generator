@@ -48,6 +48,7 @@ async function fetchBinanceMarkPrice(symbol: string): Promise<number> {
   const endpoints = [
     `https://fapi.binance.com/fapi/v1/ticker/price?symbol=${encodeURIComponent(normalized)}`,
     `https://api.binance.com/api/v3/ticker/price?symbol=${encodeURIComponent(normalized)}`,
+    `https://data-api.binance.vision/api/v3/ticker/price?symbol=${encodeURIComponent(normalized)}`,
   ];
 
   let lastError: Error | null = null;

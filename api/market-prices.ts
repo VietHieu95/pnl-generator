@@ -22,28 +22,42 @@ function getRequestedSymbols(value: unknown): string[] {
 }
 
 async function fetchBinanceMarkPrice(symbol: string): Promise<number> {
-  const response = await fetch(
+  const endpoints = [
     `https://fapi.binance.com/fapi/v1/ticker/price?symbol=${encodeURIComponent(symbol)}`,
-    {
-      headers: {
-        Accept: "application/json",
-        "User-Agent": "pnl-generator/1.0",
-      },
-    },
+    `https://api.binance.com/api/v3/ticker/price?symbol=${encodeURIComponent(symbol)}`,
+    `https://data-api.binance.vision/api/v3/ticker/price?symbol=${encodeURIComponent(symbol)}`,
+  ];
+  let lastError: Error | null = null;
+
+  for (const endpoint of endpoints) {
+    try {
+      const response = await fetch(endpoint, {
+        headers: {
+          Accept: "application/json",
+          "User-Agent": "pnl-generator/1.0",
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      const payload = (await response.json()) as { price?: string };
+      const price = Number(payload.price);
+
+      if (!Number.isFinite(price) || price <= 0) {
+        throw new Error("Invalid price payload");
+      }
+
+      return price;
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error(String(error));
+    }
+  }
+
+  throw new Error(
+    `Unable to fetch live price for ${symbol}${lastError ? `: ${lastError.message}` : ""}`,
   );
-
-  if (!response.ok) {
-    throw new Error(`HTTP ${response.status}`);
-  }
-
-  const payload = (await response.json()) as { price?: string };
-  const price = Number(payload.price);
-
-  if (!Number.isFinite(price) || price <= 0) {
-    throw new Error("Invalid price payload");
-  }
-
-  return price;
 }
 
 export default async function handler(req: ApiRequest, res: ApiResponse) {
