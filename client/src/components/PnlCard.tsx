@@ -57,17 +57,26 @@ export function PnlCard({ data, language = "en" }: PnlCardProps) {
   const markDecimals = getMarkDecimals();
 
   const renderNumberWithStyledComma = (text: string) => {
+    const numberFont = {
+      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Inter", sans-serif'
+    };
+    const commaFont = {
+      fontFamily: "'IBM Plex Sans', sans-serif",
+      fontSize: '0.85em'
+    };
     const parts = text.split(",");
-    if (parts.length === 2) {
-      return (
-        <>
-          <span style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Inter", sans-serif' }}>{parts[0]}</span>
-          <span style={{ fontFamily: "'IBM Plex Sans', sans-serif", fontSize: '0.85em' }}>,</span>
-          <span style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Inter", sans-serif' }}>{parts[1]}</span>
-        </>
-      );
-    }
-    return <span style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Inter", sans-serif' }}>{text}</span>;
+    if (parts.length === 1) return <span style={numberFont}>{text}</span>;
+
+    return (
+      <>
+        {parts.map((part, index) => (
+          <span key={`${part}-${index}`} style={numberFont}>
+            {index > 0 && <span style={commaFont}>,</span>}
+            {part}
+          </span>
+        ))}
+      </>
+    );
   };
 
   const formatPnl = (pnl: number) => {
@@ -123,6 +132,16 @@ export function PnlCard({ data, language = "en" }: PnlCardProps) {
     const ratioColor = data.marginRatio >= 0 ? "text-[#2bbe84]" : "text-[#f6465d]";
     const tagText = data.type === "Perp" ? "永續" : "季度";
     const marginText = data.marginMode === "Cross" ? "全倉" : "逐倉";
+    const renderChineseUnderlinedLabel = (label: string) => (
+      <span className="inline-block border-b-2 border-dotted border-[#5d6676] pb-[2px] leading-none">
+        {label}
+      </span>
+    );
+    const renderMissingLiqPrice = () => (
+      <span className="inline-block border-b-2 border-dotted border-[#5d6676] pb-[3px] leading-none">
+        --
+      </span>
+    );
 
     return (
       <div
@@ -160,17 +179,19 @@ export function PnlCard({ data, language = "en" }: PnlCardProps) {
 
         <div className="flex justify-between mb-3">
           <div>
-            <div className="text-[#8d96a6] text-[14px] leading-tight">未實現盈虧 (USDT)</div>
-            <div className="text-[#5d6676] text-[4px] tracking-[0.5px] leading-none">••••••••••••••••••••••••••</div>
+            <div className="text-[#8d96a6] text-[14px] leading-tight">
+              {renderChineseUnderlinedLabel("未實現盈虧 (USDT)")}
+            </div>
             <div className={`${pnlColor} font-bold text-[20px] leading-tight mt-0.5`} data-testid="text-pnl">
-              {formatChinesePnl(data.unrealizedPnl)}
+              {renderNumberWithStyledComma(formatChinesePnl(data.unrealizedPnl))}
             </div>
           </div>
           <div className="text-right">
-            <div className="text-[#8d96a6] text-[14px] leading-tight">收益率</div>
-            <div className="text-[#5d6676] text-[4px] tracking-[0.5px] leading-none">••••••••••</div>
+            <div className="text-[#8d96a6] text-[14px] leading-tight">
+              {renderChineseUnderlinedLabel("收益率")}
+            </div>
             <div className={`${roiColor} font-bold text-[20px] leading-tight mt-0.5`} data-testid="text-roi">
-              {formatChineseRoi(data.roi)}
+              {renderNumberWithStyledComma(formatChineseRoi(data.roi))}
             </div>
           </div>
         </div>
@@ -196,49 +217,49 @@ export function PnlCard({ data, language = "en" }: PnlCardProps) {
               />
             </div>
             <div className="font-normal text-[#e8edf2] text-[16px] mt-1" data-testid="text-size">
-              {formatChinesePrice(sizeUsdt, 3)}
+              {renderNumberWithStyledComma(formatChinesePrice(sizeUsdt, 3))}
             </div>
           </div>
           <div>
             <div className="text-[#8d96a6] text-[14px] leading-tight">保證金 (USDT)</div>
             <div className="font-normal text-[#e8edf2] text-[16px] mt-1" data-testid="text-margin">
-              {formatChinesePrice(data.margin, 2)}
+              {renderNumberWithStyledComma(formatChinesePrice(data.margin, 2))}
             </div>
           </div>
           <div className="text-right">
-            <div className="text-[#8d96a6] text-[14px] leading-tight">保證金比例</div>
-            <div className="text-[#5d6676] text-[4px] tracking-[0.5px] leading-none">••••••••••••••</div>
+            <div className="text-[#8d96a6] text-[14px] leading-tight">
+              {renderChineseUnderlinedLabel("保證金比例")}
+            </div>
             <div className={`${ratioColor} font-normal text-[16px] mt-0.5`} data-testid="text-margin-ratio">
-              {formatChineseNumber(data.marginRatio, 2)}%
+              {renderNumberWithStyledComma(`${formatChineseNumber(data.marginRatio, 2)}%`)}
             </div>
           </div>
         </div>
 
         <div className="grid grid-cols-3 gap-4">
           <div>
-            <div className="text-[#8d96a6] text-[14px] leading-tight">開倉價格 (USDT)</div>
-            <div className="text-[#5d6676] text-[4px] tracking-[0.5px] leading-none">••••••••••••••••••••</div>
+            <div className="text-[#8d96a6] text-[14px] leading-tight">
+              {renderChineseUnderlinedLabel("開倉價格 (USDT)")}
+            </div>
             <div className="font-normal text-[#e8edf2] text-[16px] mt-0.5" data-testid="text-entry-price">
-              {formatChinesePrice(data.entryPrice, entryDecimals)}
+              {renderNumberWithStyledComma(formatChinesePrice(data.entryPrice, entryDecimals))}
             </div>
           </div>
           <div>
             <div className="text-[#8d96a6] text-[14px] leading-tight">標記價格 (USDT)</div>
             <div className="font-normal text-[#e8edf2] text-[16px] mt-1.5" data-testid="text-mark-price">
-              {formatChinesePrice(data.markPrice, markDecimals)}
+              {renderNumberWithStyledComma(formatChinesePrice(data.markPrice, markDecimals))}
             </div>
           </div>
           <div className="text-right">
-            <div className="text-[#8d96a6] text-[14px] leading-tight">強平價格 (USDT)</div>
-            <div className="text-[#5d6676] text-[4px] tracking-[0.5px] leading-none">••••••••••••••••••••</div>
+            <div className="text-[#8d96a6] text-[14px] leading-tight">
+              {renderChineseUnderlinedLabel("強平價格 (USDT)")}
+            </div>
             <div className="font-normal text-[#e8edf2] text-[16px] mt-0.5" data-testid="text-liq-price">
               {data.liqPrice <= 0 ? (
-                <div className="flex flex-col items-end">
-                  <span>--</span>
-                  <div className="text-[#5d6676] text-[4px] tracking-[0.5px] leading-none mt-[1px]">••••••••</div>
-                </div>
+                renderMissingLiqPrice()
               ) : (
-                formatChinesePrice(data.liqPrice, entryDecimals)
+                renderNumberWithStyledComma(formatChinesePrice(data.liqPrice, entryDecimals))
               )}
             </div>
           </div>
