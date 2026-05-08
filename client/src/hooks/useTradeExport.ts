@@ -18,7 +18,8 @@ const SCREENSHOT_OPTIONS = {
  */
 export function useTradeExport(
   cardRef: RefObject<HTMLDivElement>,
-  activeTrade: PnlData | undefined
+  activeTrade: PnlData | undefined,
+  cardLanguage: "en" | "zh" = "en"
 ) {
   const { toast } = useToast();
   const [isExporting, setIsExporting] = useState(false);
@@ -30,7 +31,7 @@ export function useTradeExport(
       const dataUrl = await domToPng(cardRef.current, SCREENSHOT_OPTIONS);
       const a = document.createElement("a");
       a.href = dataUrl;
-      a.download = `pnl-${activeTrade?.symbol || "trade"}-${Date.now()}.png`;
+      a.download = `pnl-${activeTrade?.symbol || "trade"}-${cardLanguage}-${Date.now()}.png`;
       a.style.display = "none";
       document.body.appendChild(a);
       a.click();
@@ -42,7 +43,7 @@ export function useTradeExport(
     } finally {
       setIsExporting(false);
     }
-  }, [cardRef, activeTrade?.symbol, toast]);
+  }, [cardRef, activeTrade?.symbol, cardLanguage, toast]);
 
   const handleCopyToClipboard = useCallback(async () => {
     if (!cardRef.current) return;

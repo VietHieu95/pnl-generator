@@ -1,5 +1,5 @@
-import { useRef } from "react";
-import { PnlCard } from "@/components/PnlCard";
+import { useRef, useState } from "react";
+import { PnlCard, type PnlCardLanguage } from "@/components/PnlCard";
 import { PnlForm } from "@/components/PnlForm";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -29,9 +29,17 @@ export default function Home() {
   } = useTradesState();
 
   const cardRef = useRef<HTMLDivElement>(null);
+  const [cardLanguage, setCardLanguageState] = useState<PnlCardLanguage>(() =>
+    localStorage.getItem("pnlCardLanguage") === "zh" ? "zh" : "en"
+  );
+  const setCardLanguage = (language: PnlCardLanguage) => {
+    setCardLanguageState(language);
+    localStorage.setItem("pnlCardLanguage", language);
+  };
   const { isExporting, handleExport, handleCopyToClipboard } = useTradeExport(
     cardRef,
-    activeTrade
+    activeTrade,
+    cardLanguage
   );
 
   // Stable WebSocket subscription — only reconnects when symbols change
@@ -126,9 +134,25 @@ export default function Home() {
           </div>
 
           <div className="lg:sticky lg:top-24 space-y-5 w-full min-w-0">
-            <div className="flex items-center justify-between px-1">
+            <div className="flex flex-wrap items-center justify-between gap-2 px-1">
               <h2 className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Live Preview</h2>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center justify-end gap-2">
+                <div className="flex items-center rounded-lg border border-white/10 bg-white/5 p-0.5">
+                  {(["en", "zh"] as const).map((language) => (
+                    <button
+                      key={language}
+                      type="button"
+                      onClick={() => setCardLanguage(language)}
+                      className={`h-7 px-3 rounded-md text-[10px] font-black uppercase transition-colors ${
+                        cardLanguage === language
+                          ? "bg-primary text-primary-foreground"
+                          : "text-muted-foreground hover:text-white"
+                      }`}
+                    >
+                      {language === "en" ? "English" : "中文"}
+                    </button>
+                  ))}
+                </div>
                 <Button variant="outline" size="sm" onClick={handleCopyToClipboard} className="h-8 text-[10px] uppercase px-3 border-white/10 bg-white/5">
                   <Image className="w-3 h-3 mr-1.5" />
                   Copy
@@ -145,7 +169,7 @@ export default function Home() {
                 <div className="w-full flex justify-center">
                   <div className="origin-top" style={{ transform: "scale(0.75)", transformOrigin: "top center" }}>
                     <div ref={cardRef} className="shrink-0">
-                      <PnlCard data={activeTrade} />
+                      <PnlCard data={activeTrade} language={cardLanguage} />
                     </div>
                   </div>
                 </div>

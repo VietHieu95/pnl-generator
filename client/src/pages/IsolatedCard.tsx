@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useSearch } from "wouter";
 import { PnlData, pnlDataSchema } from "@shared/schema";
-import { PnlCard } from "@/components/PnlCard";
+import { PnlCard, type PnlCardLanguage } from "@/components/PnlCard";
 
 export default function IsolatedCard() {
     // Use window.location.search for more reliable parameter detection in all environments
@@ -9,6 +9,7 @@ export default function IsolatedCard() {
 
     // Check if we have at least 'symbol' to consider it a stateless request
     const hasParams = queryParams.has("symbol");
+    const cardLanguage: PnlCardLanguage = queryParams.get("lang") === "zh" ? "zh" : "en";
 
     const { data: apiData, isLoading, error } = useQuery<PnlData>({
         queryKey: ["/api/pnl"],
@@ -39,7 +40,7 @@ export default function IsolatedCard() {
     return (
         <div className="bg-[#0B0E11] min-h-screen flex items-center justify-center">
             <div id="pnl-card-container">
-                <PnlCard data={data} />
+                <PnlCard data={data} language={cardLanguage} />
             </div>
         </div>
     );
