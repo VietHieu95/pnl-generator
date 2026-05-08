@@ -132,14 +132,27 @@ export function PnlCard({ data, language = "en" }: PnlCardProps) {
     const ratioColor = data.marginRatio >= 0 ? "text-[#2bbe84]" : "text-[#f6465d]";
     const tagText = data.type === "Perp" ? "永續" : "季度";
     const marginText = data.marginMode === "Cross" ? "全倉" : "逐倉";
+    const smallDotLine = "••••••••••••••••••••••••••••••••••••••••••••••••";
     const renderChineseUnderlinedLabel = (label: string) => (
-      <span className="inline-block border-b-2 border-dotted border-[#5d6676] pb-[2px] leading-none">
-        {label}
+      <span className="relative inline-block pb-[5px] leading-none">
+        <span>{label}</span>
+        <span
+          aria-hidden="true"
+          className="absolute bottom-0 left-0 right-0 block overflow-hidden whitespace-nowrap text-[#5d6676] text-[4px] tracking-[0.5px] leading-none"
+        >
+          {smallDotLine}
+        </span>
       </span>
     );
     const renderMissingLiqPrice = () => (
-      <span className="inline-block border-b-2 border-dotted border-[#5d6676] pb-[3px] leading-none">
-        --
+      <span className="relative inline-block min-w-[22px] pb-[6px] text-center leading-none">
+        <span className="block">--</span>
+        <span
+          aria-hidden="true"
+          className="absolute bottom-0 left-0 right-0 block overflow-hidden whitespace-nowrap text-[#5d6676] text-[4px] tracking-[0.5px] leading-none"
+        >
+          {smallDotLine}
+        </span>
       </span>
     );
 
