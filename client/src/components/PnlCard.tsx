@@ -164,7 +164,7 @@ export function PnlCard({ data, language = "en" }: PnlCardProps) {
         data-language="zh"
       >
         <div className="flex items-center justify-between h-7 mb-3">
-          <div className="flex items-center gap-2 min-w-0">
+          <div className="flex items-center gap-[3px] min-w-0">
             <div className={`w-[20px] h-[20px] rounded-[4px] flex items-center justify-center shrink-0 ${data.positionType === "Short" ? "bg-[#F6465D]" : "bg-[#0ECB81]"}`}>
               <span className="text-white text-[13px] font-semibold">
                 {data.positionType === "Short" ? "S" : "B"}
@@ -173,13 +173,13 @@ export function PnlCard({ data, language = "en" }: PnlCardProps) {
             <span className="text-white text-[18px] font-normal truncate" data-testid="text-symbol">
               {data.symbol}
             </span>
-            <span className="text-[12px] px-2 py-0.5 rounded border border-[#3b4656] bg-[#242b36] text-[#d8e0ea] font-normal">
+            <span className="h-[20px] inline-flex items-center rounded-[4px] border border-[#343d4a] bg-[#252c37] px-[6px] text-[12px] leading-none text-[#d8e0ea] font-normal">
               {tagText}
             </span>
-            <span className="text-[12px] px-2 py-0.5 rounded border border-[#3b4656] bg-[#242b36] text-[#d8e0ea] font-normal">
+            <span className="h-[20px] inline-flex items-center rounded-[4px] border border-[#343d4a] bg-[#252c37] px-[6px] text-[12px] leading-none text-[#d8e0ea] font-normal">
               {marginText} {data.leverage}X
             </span>
-            <span className="tracking-tight font-normal text-[18px] flex ml-1">
+            <span className="tracking-tight font-normal text-[18px] flex">
               {[1, 2, 3, 4].map((i) => (
                 <span key={i} style={{ color: i <= data.signalBars ? '#0ECB81' : '#3a3f47' }}>!</span>
               ))}
@@ -278,21 +278,21 @@ export function PnlCard({ data, language = "en" }: PnlCardProps) {
           </div>
         </div>
 
-        <div className="grid grid-cols-3 gap-3 mt-2 h-9">
+        <div className="grid grid-cols-3 gap-2 mt-3 h-9">
           <button
-            className="font-semibold rounded-lg hover:bg-[#3c4654] transition-colors text-[#edf2f7] text-[15px] bg-[#323b47]"
+            className="font-medium rounded-lg hover:bg-[#363C45] transition-colors text-[#e6ecf3] text-[13px] bg-[#323b47]"
             data-testid="button-leverage"
           >
             槓桿
           </button>
           <button
-            className="font-semibold rounded-lg hover:bg-[#3c4654] transition-colors text-[#edf2f7] text-[15px] bg-[#323b47]"
+            className="font-medium rounded-lg hover:bg-[#363C45] transition-colors text-[#e6ecf3] text-[13px] bg-[#323b47]"
             data-testid="button-tpsl"
           >
             止盈 / 止損
           </button>
           <button
-            className="font-semibold rounded-lg hover:bg-[#3c4654] transition-colors text-[#edf2f7] text-[15px] bg-[#323b47]"
+            className="font-medium rounded-lg hover:bg-[#363C45] transition-colors text-[#e6ecf3] text-[13px] bg-[#323b47]"
             data-testid="button-close"
           >
             關閉
