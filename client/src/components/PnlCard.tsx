@@ -134,7 +134,7 @@ export function PnlCard({ data, language = "en" }: PnlCardProps) {
     const marginText = data.marginMode === "Cross" ? "全倉" : "逐倉";
     const smallDotLine = "••••••••••••••••••••••••••••••••••••••••••••••••";
     const renderChineseUnderlinedLabel = (label: string) => (
-      <span className="relative inline-block pb-[5px] leading-none">
+      <span className="relative inline-block whitespace-nowrap pb-[5px] leading-none">
         <span>{label}</span>
         <span
           aria-hidden="true"
@@ -158,7 +158,7 @@ export function PnlCard({ data, language = "en" }: PnlCardProps) {
 
     return (
       <div
-        className="w-[480px] h-[280px] bg-[#202630] px-4 pt-3 pb-3 box-border"
+        className="pnl-card-canvas w-[480px] h-[280px] bg-[#202630] px-4 pt-3 pb-3 box-border"
         style={{ fontFamily: '"Inter", "SF Pro Display", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans TC", sans-serif', fontFeatureSettings: '"tnum"' }}
         data-testid="pnl-card"
         data-language="zh"
@@ -211,7 +211,7 @@ export function PnlCard({ data, language = "en" }: PnlCardProps) {
 
         <div className="grid grid-cols-3 gap-4 mb-3">
           <div>
-            <div className="text-[#8d96a6] flex items-center gap-1 text-[14px] leading-tight">
+            <div className="text-[#8d96a6] flex items-center gap-1 text-[14px] leading-tight whitespace-nowrap">
               持倉數量 (USDT)
               <div
                 style={{
@@ -234,7 +234,7 @@ export function PnlCard({ data, language = "en" }: PnlCardProps) {
             </div>
           </div>
           <div>
-            <div className="text-[#8d96a6] text-[14px] leading-tight">保證金 (USDT)</div>
+            <div className="text-[#8d96a6] text-[14px] leading-tight whitespace-nowrap">保證金 (USDT)</div>
             <div className="font-normal text-[#e8edf2] text-[16px] mt-1" data-testid="text-margin">
               {renderNumberWithStyledComma(formatChinesePrice(data.margin, 2))}
             </div>
@@ -259,7 +259,7 @@ export function PnlCard({ data, language = "en" }: PnlCardProps) {
             </div>
           </div>
           <div>
-            <div className="text-[#8d96a6] text-[14px] leading-tight">標記價格 (USDT)</div>
+            <div className="text-[#8d96a6] text-[14px] leading-tight whitespace-nowrap">標記價格 (USDT)</div>
             <div className="font-normal text-[#e8edf2] text-[16px] mt-1.5" data-testid="text-mark-price">
               {renderNumberWithStyledComma(formatChinesePrice(data.markPrice, markDecimals))}
             </div>
@@ -305,7 +305,7 @@ export function PnlCard({ data, language = "en" }: PnlCardProps) {
   const englishSizeUnit = data.sizeUnit.toUpperCase();
   const englishDotLine = "••••••••••••••••••••••••••••••••••••••••••••••••";
   const renderEnglishUnderlinedLabel = (label: string) => (
-    <span className="relative inline-block pb-[5px] leading-none">
+    <span className="relative inline-block whitespace-nowrap pb-[5px] leading-none">
       <span>{label}</span>
       <span
         aria-hidden="true"
@@ -329,7 +329,7 @@ export function PnlCard({ data, language = "en" }: PnlCardProps) {
 
   return (
     <div
-      className="w-[480px] h-[280px] bg-[#202630] px-4 pt-3 pb-3 box-border"
+      className="pnl-card-canvas w-[480px] h-[280px] bg-[#202630] px-4 pt-3 pb-3 box-border"
       style={{ fontFamily: '"Inter", "SF Pro Display", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif', fontFeatureSettings: '"tnum"' }}
       data-testid="pnl-card"
     >
@@ -381,7 +381,7 @@ export function PnlCard({ data, language = "en" }: PnlCardProps) {
 
       <div className="grid grid-cols-3 gap-4 mb-3">
         <div>
-          <div className="text-[#8d96a6] flex items-center gap-1 text-[14px] leading-tight">
+          <div className="text-[#8d96a6] flex items-center gap-1 text-[14px] leading-tight whitespace-nowrap">
             Size ({englishSizeUnit})
             <div
               style={{
@@ -404,7 +404,7 @@ export function PnlCard({ data, language = "en" }: PnlCardProps) {
           </div>
         </div>
         <div>
-          <div className="text-[#8d96a6] text-[14px] leading-tight">Margin (USDT)</div>
+          <div className="text-[#8d96a6] text-[14px] leading-tight whitespace-nowrap">Margin (USDT)</div>
           <div className="font-normal text-[#e8edf2] text-[16px] mt-1" data-testid="text-margin">
             {renderNumberWithStyledComma(formatPrice(data.margin))}
           </div>
@@ -429,7 +429,7 @@ export function PnlCard({ data, language = "en" }: PnlCardProps) {
           </div>
         </div>
         <div>
-          <div className="text-[#8d96a6] text-[14px] leading-tight">Mark Price (USDT)</div>
+          <div className="text-[#8d96a6] text-[14px] leading-tight whitespace-nowrap">Mark Price (USDT)</div>
           <div className="font-normal text-[#e8edf2] text-[16px] mt-1.5" data-testid="text-mark-price">
             {renderNumberWithStyledComma(formatPrice(data.markPrice, markDecimals))}
           </div>

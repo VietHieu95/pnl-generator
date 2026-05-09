@@ -301,6 +301,11 @@
 
   .no-default-active-elevate {}
 
+  .pnl-card-canvas {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+
 
   /**
    * Toggleable backgrounds go behind the content. Hoverable/active goes on top.
