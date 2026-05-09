@@ -343,10 +343,10 @@ export function PnlCard({ data, language = "en" }: PnlCardProps) {
           <span className="text-white text-[18px] font-normal truncate" data-testid="text-symbol">
             {data.symbol}
           </span>
-          <span className="text-[12px] px-[5px] py-0.5 rounded border border-[#3b4656] bg-[#242b36] text-[#d8e0ea] font-normal">
+          <span className="h-[20px] inline-flex items-center rounded-[4px] border border-[#343d4a] bg-[#252c37] px-[6px] text-[12px] leading-none text-[#d8e0ea] font-normal">
             {data.type}
           </span>
-          <span className="text-[12px] px-[5px] py-0.5 rounded border border-[#3b4656] bg-[#242b36] text-[#d8e0ea] font-normal">
+          <span className="h-[20px] inline-flex items-center rounded-[4px] border border-[#343d4a] bg-[#252c37] px-[6px] text-[12px] leading-none text-[#d8e0ea] font-normal">
             {data.marginMode} {data.leverage}X
           </span>
           <span className="tracking-tight font-normal text-[18px] flex">
@@ -450,19 +450,19 @@ export function PnlCard({ data, language = "en" }: PnlCardProps) {
 
       <div className="grid grid-cols-3 gap-2 mt-3 h-9">
         <button
-          className="font-medium rounded-lg hover:bg-[#363C45] transition-colors text-[#e6ecf3] text-[12px] bg-[#323b47]"
+          className="font-medium rounded-lg hover:bg-[#363C45] transition-colors text-[#e6ecf3] text-[13px] bg-[#323b47]"
           data-testid="button-leverage"
         >
           Leverage
         </button>
         <button
-          className="font-medium rounded-lg hover:bg-[#363C45] transition-colors text-[#e6ecf3] text-[12px] bg-[#323b47]"
+          className="font-medium rounded-lg hover:bg-[#363C45] transition-colors text-[#e6ecf3] text-[13px] bg-[#323b47]"
           data-testid="button-tpsl"
         >
           TP/SL
         </button>
         <button
-          className="font-medium rounded-lg hover:bg-[#363C45] transition-colors text-[#e6ecf3] text-[12px] bg-[#323b47]"
+          className="font-medium rounded-lg hover:bg-[#363C45] transition-colors text-[#e6ecf3] text-[13px] bg-[#323b47]"
           data-testid="button-close"
         >
           Close
