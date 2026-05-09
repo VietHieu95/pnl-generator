@@ -448,21 +448,21 @@ export function PnlCard({ data, language = "en" }: PnlCardProps) {
         </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-3 mt-2 h-9">
+      <div className="grid grid-cols-3 gap-2 mt-3 h-9">
         <button
-          className="font-semibold rounded-lg hover:bg-[#3c4654] transition-colors text-[#edf2f7] text-[15px] bg-[#323b47]"
+          className="font-medium rounded-lg hover:bg-[#363C45] transition-colors text-[#e6ecf3] text-[12px] bg-[#323b47]"
           data-testid="button-leverage"
         >
           Leverage
         </button>
         <button
-          className="font-semibold rounded-lg hover:bg-[#3c4654] transition-colors text-[#edf2f7] text-[15px] bg-[#323b47]"
+          className="font-medium rounded-lg hover:bg-[#363C45] transition-colors text-[#e6ecf3] text-[12px] bg-[#323b47]"
           data-testid="button-tpsl"
         >
           TP/SL
         </button>
         <button
-          className="font-semibold rounded-lg hover:bg-[#3c4654] transition-colors text-[#edf2f7] text-[15px] bg-[#323b47]"
+          className="font-medium rounded-lg hover:bg-[#363C45] transition-colors text-[#e6ecf3] text-[12px] bg-[#323b47]"
           data-testid="button-close"
         >
           Close
