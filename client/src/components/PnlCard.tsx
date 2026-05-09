@@ -302,64 +302,87 @@ export function PnlCard({ data, language = "en" }: PnlCardProps) {
     );
   }
 
+  const englishSizeUnit = data.sizeUnit.toUpperCase();
+  const englishDotLine = "••••••••••••••••••••••••••••••••••••••••••••••••";
+  const renderEnglishUnderlinedLabel = (label: string) => (
+    <span className="relative inline-block pb-[5px] leading-none">
+      <span>{label}</span>
+      <span
+        aria-hidden="true"
+        className="absolute bottom-0 left-0 right-0 block overflow-hidden whitespace-nowrap text-[#5d6676] text-[4px] tracking-[0.5px] leading-none"
+      >
+        {englishDotLine}
+      </span>
+    </span>
+  );
+  const renderEnglishMissingLiqPrice = () => (
+    <span className="relative inline-block min-w-[22px] pb-[6px] text-center leading-none">
+      <span className="block">--</span>
+      <span
+        aria-hidden="true"
+        className="absolute bottom-0 left-0 right-0 block overflow-hidden whitespace-nowrap text-[#5d6676] text-[4px] tracking-[0.5px] leading-none"
+      >
+        {englishDotLine}
+      </span>
+    </span>
+  );
+
   return (
     <div
-      className="w-[480px] h-[280px] bg-[#202630] py-4 box-border"
+      className="w-[480px] h-[280px] bg-[#202630] px-4 pt-3 pb-3 box-border"
       style={{ fontFamily: '"Inter", "SF Pro Display", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif', fontFeatureSettings: '"tnum"' }}
       data-testid="pnl-card"
     >
-      <div className="flex items-center justify-between mb-3 h-6 px-4">
-        <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1.5">
-            <div className={`w-[18px] h-[18px] rounded-[3px] flex items-center justify-center ${data.positionType === "Short" ? "bg-[#F6465D]" : "bg-[#0ECB81]"}`}>
-              <span className="text-white text-[13px] font-medium">
-                {data.positionType === "Short" ? "S" : "B"}
-              </span>
-            </div>
-            <span className="text-white text-[17px] font-normal" data-testid="text-symbol">
-              {data.symbol}
+      <div className="flex items-center justify-between h-7 mb-3">
+        <div className="flex items-center gap-[3px] min-w-0">
+          <div className={`w-[20px] h-[20px] rounded-[4px] flex items-center justify-center shrink-0 ${data.positionType === "Short" ? "bg-[#F6465D]" : "bg-[#0ECB81]"}`}>
+            <span className="text-white text-[13px] font-semibold">
+              {data.positionType === "Short" ? "S" : "B"}
             </span>
           </div>
-          <div className="flex items-center gap-0.5">
-            <span className="text-xs px-1.5 py-0.5 rounded bg-[#2b3139] text-[#e6ecf3] font-normal">
-              {data.type}
-            </span>
-            <span className="text-xs py-0.5 bg-[#2B3139] rounded text-[#e6ecf3] px-1.5 font-normal">
-              {data.marginMode} {data.leverage}X
-            </span>
-            <span className="tracking-tight font-normal text-[17px] flex">
-              {[1, 2, 3, 4].map((i) => (
-                <span key={i} style={{ color: i <= data.signalBars ? '#0ECB81' : '#3a3f47' }}>!</span>
-              ))}
-            </span>
-          </div>
+          <span className="text-white text-[18px] font-normal truncate" data-testid="text-symbol">
+            {data.symbol}
+          </span>
+          <span className="text-[12px] px-[5px] py-0.5 rounded border border-[#3b4656] bg-[#242b36] text-[#d8e0ea] font-normal">
+            {data.type}
+          </span>
+          <span className="text-[12px] px-[5px] py-0.5 rounded border border-[#3b4656] bg-[#242b36] text-[#d8e0ea] font-normal">
+            {data.marginMode} {data.leverage}X
+          </span>
+          <span className="tracking-tight font-normal text-[18px] flex">
+            {[1, 2, 3, 4].map((i) => (
+              <span key={i} style={{ color: i <= data.signalBars ? '#0ECB81' : '#3a3f47' }}>!</span>
+            ))}
+          </span>
         </div>
-        <button className="text-[#848E9C] hover:text-white transition-colors" data-testid="button-share">
-          <Share2 style={{ width: '20px', height: '20px' }} />
+        <button className="text-[#848E9C] hover:text-white transition-colors shrink-0" data-testid="button-share">
+          <Share2 style={{ width: '22px', height: '22px' }} />
         </button>
       </div>
-      <div className="mb-1 px-4">
-        <div className="flex justify-between">
-          <div>
-            <div className="text-[#848E9C] text-[12px] leading-tight">PNL (USDT)</div>
-            <div className="text-[#4A5568] text-[4px] tracking-[0.5px] leading-none">•••••••••••••••••••••••••</div>
-            <div className={`${data.unrealizedPnl >= 0 ? "text-[#2bbe84]" : "text-[#f6465d]"} font-bold font-sans text-[19px]`} data-testid="text-pnl">
-              {renderNumberWithStyledComma(formatPnl(data.unrealizedPnl))}
-            </div>
+
+      <div className="flex justify-between mb-3">
+        <div>
+          <div className="text-[#8d96a6] text-[14px] leading-tight">
+            {renderEnglishUnderlinedLabel("PNL (USDT)")}
           </div>
-          <div className="text-right">
-            <div className="text-[#848E9C] text-[12px] leading-tight">ROI</div>
-            <div className="text-[#4A5568] text-[4px] tracking-[0.5px] leading-none">••••••••</div>
-            <div className={`${data.roi >= 0 ? "text-[#2bbe84]" : "text-[#f6465d]"} font-bold font-sans text-[19px]`} data-testid="text-roi">
-              {renderNumberWithStyledComma(formatRoi(data.roi))}
-            </div>
+          <div className={`${data.unrealizedPnl >= 0 ? "text-[#2bbe84]" : "text-[#f6465d]"} font-bold text-[20px] leading-tight mt-0.5`} data-testid="text-pnl">
+            {renderNumberWithStyledComma(formatPnl(data.unrealizedPnl))}
+          </div>
+        </div>
+        <div className="text-right">
+          <div className="text-[#8d96a6] text-[14px] leading-tight">
+            {renderEnglishUnderlinedLabel("ROI")}
+          </div>
+          <div className={`${data.roi >= 0 ? "text-[#2bbe84]" : "text-[#f6465d]"} font-bold text-[20px] leading-tight mt-0.5`} data-testid="text-roi">
+            {renderNumberWithStyledComma(formatRoi(data.roi))}
           </div>
         </div>
       </div>
-      <div className="grid grid-cols-3 gap-2 mb-1 px-4 mt-2">
+
+      <div className="grid grid-cols-3 gap-4 mb-3">
         <div>
-          <div className="text-[#848E9C] flex items-center gap-1 text-[12px] leading-tight">
-            Size ({data.sizeUnit.toUpperCase()})
+          <div className="text-[#8d96a6] flex items-center gap-1 text-[14px] leading-tight">
+            Size ({englishSizeUnit})
             <div
               style={{
                 backgroundColor: '#858e9c',
@@ -369,81 +392,82 @@ export function PnlCard({ data, language = "en" }: PnlCardProps) {
                 maskSize: 'contain',
                 WebkitMaskRepeat: 'no-repeat',
                 maskRepeat: 'no-repeat',
-                width: '19px',
-                height: '19px',
+                width: '18px',
+                height: '18px',
                 backgroundRepeat: 'no-repeat'
               }}
-              className="ml-0 translate-y-[1px]"
+              className="translate-y-[1px] shrink-0"
             />
           </div>
-          <div className="font-normal text-[#e8edf2] text-[15px] mt-0.5" data-testid="text-size">
+          <div className="font-normal text-[#e8edf2] text-[16px] mt-1" data-testid="text-size">
             {renderNumberWithStyledComma(formatPrice(data.size))}
           </div>
         </div>
         <div>
-          <div className="text-[#848E9C] text-[12px] leading-tight">Margin (USDT)</div>
-          <div className="font-normal text-[#e8edf2] text-[15px] mt-0.5" data-testid="text-margin">
+          <div className="text-[#8d96a6] text-[14px] leading-tight">Margin (USDT)</div>
+          <div className="font-normal text-[#e8edf2] text-[16px] mt-1" data-testid="text-margin">
             {renderNumberWithStyledComma(formatPrice(data.margin))}
           </div>
         </div>
         <div className="text-right">
-          <div className="text-[#848E9C] text-[12px] leading-tight">Margin Ratio</div>
-          <div className="text-[#4A5568] text-[4px] tracking-[0.5px] leading-none">••••••••••••••••••••••••••</div>
-          <div className="font-normal text-[#3aba8b] text-[15px]" data-testid="text-margin-ratio">
+          <div className="text-[#8d96a6] text-[14px] leading-tight">
+            {renderEnglishUnderlinedLabel("Margin Ratio")}
+          </div>
+          <div className={`${data.marginRatio >= 0 ? "text-[#2bbe84]" : "text-[#f6465d]"} font-normal text-[16px] mt-0.5`} data-testid="text-margin-ratio">
             {renderNumberWithStyledComma(formatNumber(data.marginRatio, 2))}%
           </div>
         </div>
       </div>
-      <div className="grid grid-cols-3 gap-2 px-4 mt-1">
+
+      <div className="grid grid-cols-3 gap-4">
         <div>
-          <div className="text-[#848E9C] text-[12px] leading-tight">Entry Price (USDT)</div>
-          <div className="text-[#4A5568] text-[4px] tracking-[0.5px] leading-none">•••••••••••••••••••••••••••••••••••••••••</div>
-          <div className="font-normal text-[#e8edf2] text-[15px]" data-testid="text-entry-price">
+          <div className="text-[#8d96a6] text-[14px] leading-tight">
+            {renderEnglishUnderlinedLabel("Entry Price (USDT)")}
+          </div>
+          <div className="font-normal text-[#e8edf2] text-[16px] mt-0.5" data-testid="text-entry-price">
             {renderNumberWithStyledComma(formatPrice(data.entryPrice, entryDecimals))}
           </div>
         </div>
         <div>
-          <div className="text-[#848E9C] text-[12px] leading-tight">Mark Price (USDT)</div>
-          <div className="font-normal text-[#e8edf2] text-[15px] mt-1" data-testid="text-mark-price">
+          <div className="text-[#8d96a6] text-[14px] leading-tight">Mark Price (USDT)</div>
+          <div className="font-normal text-[#e8edf2] text-[16px] mt-1.5" data-testid="text-mark-price">
             {renderNumberWithStyledComma(formatPrice(data.markPrice, markDecimals))}
           </div>
         </div>
         <div className="text-right">
-          <div className="text-[#848E9C] text-[12px] leading-tight">Liq.Price (USDT)</div>
-          <div className="text-[#4A5568] text-[4px] tracking-[0.5px] leading-none">••••••••••••••••••••••••••••••••••••</div>
-          <div className="font-normal text-[#e8edf2] text-[15px]" data-testid="text-liq-price">
+          <div className="text-[#8d96a6] text-[14px] leading-tight">
+            {renderEnglishUnderlinedLabel("Liq.Price (USDT)")}
+          </div>
+          <div className="font-normal text-[#e8edf2] text-[16px] mt-0.5" data-testid="text-liq-price">
             {data.liqPrice <= 0 ? (
-              <div className="flex flex-col items-end">
-                <span>--</span>
-                <div className="text-[#4A5568] text-[4px] tracking-[0.5px] leading-none mt-[1px]">••••••••</div>
-              </div>
+              renderEnglishMissingLiqPrice()
             ) : (
               renderNumberWithStyledComma(formatPrice(data.liqPrice, entryDecimals))
             )}
           </div>
         </div>
       </div>
-      <div className="grid grid-cols-3 gap-2 mt-3 h-9 px-4">
+
+      <div className="grid grid-cols-3 gap-3 mt-2 h-9">
         <button
-          className="font-medium rounded-lg hover:bg-[#363C45] transition-colors text-[#e6ecf3] text-[12px] bg-[#323b47]"
+          className="font-semibold rounded-lg hover:bg-[#3c4654] transition-colors text-[#edf2f7] text-[15px] bg-[#323b47]"
           data-testid="button-leverage"
         >
           Leverage
         </button>
         <button
-          className="font-medium rounded-lg hover:bg-[#363C45] transition-colors text-[#e6ecf3] text-[12px] bg-[#323b47]"
+          className="font-semibold rounded-lg hover:bg-[#3c4654] transition-colors text-[#edf2f7] text-[15px] bg-[#323b47]"
           data-testid="button-tpsl"
         >
           TP/SL
         </button>
         <button
-          className="font-medium rounded-lg hover:bg-[#363C45] transition-colors text-[#e6ecf3] text-[12px] bg-[#323b47]"
+          className="font-semibold rounded-lg hover:bg-[#3c4654] transition-colors text-[#edf2f7] text-[15px] bg-[#323b47]"
           data-testid="button-close"
         >
           Close
         </button>
       </div>
-
     </div>
   );
 }
