@@ -36,11 +36,13 @@ export default function Home() {
     setCardLanguageState(language);
     localStorage.setItem("pnlCardLanguage", language);
   };
-  const { isExporting, handleExport, handleCopyToClipboard } = useTradeExport(
-    cardRef,
-    activeTrade,
-    cardLanguage
-  );
+  const {
+    isExporting,
+    handleExport,
+    handleCopyToClipboard,
+    savePreviewUrl,
+    closeSavePreview,
+  } = useTradeExport(cardRef, activeTrade, cardLanguage);
 
   // Stable WebSocket subscription — only reconnects when symbols change
   useBinanceTicker(trades, isLive, updateTradePrice);
@@ -189,6 +191,36 @@ export default function Home() {
           </div>
         </div>
       </main>
+
+      {/* Fallback when neither the share sheet nor the clipboard is available
+          (iOS, or any non-secure context) — long-press the PNG to save it. */}
+      {savePreviewUrl && (
+        <div
+          className="fixed inset-0 z-[100] flex flex-col items-center justify-center gap-4 bg-black/90 p-4 backdrop-blur-sm"
+          onClick={closeSavePreview}
+          style={{ paddingTop: "env(safe-area-inset-top)" }}
+        >
+          <p className="text-[10px] font-black uppercase tracking-widest text-primary text-center">
+            Nhấn giữ ảnh → Lưu vào Ảnh
+          </p>
+          <img
+            src={savePreviewUrl}
+            alt="PNL card"
+            onClick={(e) => e.stopPropagation()}
+            className="max-h-[70vh] max-w-full rounded-xl border border-white/10 shadow-2xl"
+            style={{ WebkitTouchCallout: "default" }}
+          />
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={closeSavePreview}
+            className="h-8 border-white/10 bg-white/5 px-4 text-[10px] uppercase"
+          >
+            <X className="mr-1.5 h-3 w-3" />
+            Đóng
+          </Button>
+        </div>
+      )}
     </div>
   );
 }
