@@ -9,7 +9,9 @@ const SCREENSHOT_OPTIONS = {
   width: 480,
   height: 297,
   fetch: { requestInit: { mode: "cors" as const } },
-  font: { preferredFormat: "woff2" as const },
+  // No font.preferredFormat: modern-screenshot's format filter reuses a global regex
+  // (stale lastIndex), so every other @font-face lost its src. When that hit the upright
+  // Inter face, only the italic one was left and the whole card exported in italics.
 };
 
 const isIOS = () =>
