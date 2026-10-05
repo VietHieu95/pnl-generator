@@ -8,6 +8,7 @@ import { Download, Image, RotateCcw, Plus, X, Activity } from "lucide-react";
 import { useTradesState } from "@/hooks/useTradesState";
 import { useTradeExport } from "@/hooks/useTradeExport";
 import { useBinanceTicker } from "@/hooks/useBinanceTicker";
+import { useRealizedPnl } from "@/hooks/useRealizedPnl";
 import { HotCoins } from "@/components/HotCoins";
 
 export default function Home() {
@@ -36,13 +37,16 @@ export default function Home() {
     setCardLanguageState(language);
     localStorage.setItem("pnlCardLanguage", language);
   };
+  // Realized PNL from the coin's real Binance fee + funding history (kept live)
+  const { realized, cardData, refresh: refreshRealized } = useRealizedPnl(activeTrade);
+
   const {
     isExporting,
     handleExport,
     handleCopyToClipboard,
     savePreviewUrl,
     closeSavePreview,
-  } = useTradeExport(cardRef, activeTrade, cardLanguage);
+  } = useTradeExport(cardRef, activeTrade, cardLanguage, refreshRealized);
 
   // Stable WebSocket subscription — only reconnects when symbols change
   useBinanceTicker(trades, isLive, updateTradePrice);
@@ -132,6 +136,7 @@ export default function Home() {
               onChange={updateActiveTrade} 
               onAutoWin={generateAutoWin}
               isLive={isLive} 
+              realized={realized}
             />
           </div>
 
@@ -171,7 +176,7 @@ export default function Home() {
                 <div className="w-full flex justify-center">
                   <div className="origin-top" style={{ transform: "scale(0.75)", transformOrigin: "top center" }}>
                     <div ref={cardRef} className="shrink-0">
-                      <PnlCard data={activeTrade} language={cardLanguage} />
+                      <PnlCard data={cardData ?? activeTrade} language={cardLanguage} />
                     </div>
                   </div>
                 </div>

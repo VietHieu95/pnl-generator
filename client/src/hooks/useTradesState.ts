@@ -23,6 +23,8 @@ const defaultPnlData: PnlData = {
   markPrice: 87689.94,
   liqPrice: 80812.02,
   walletBalance: 10000,
+  holdHours: 8,
+  orderType: "market",
   tpPrice: "--",
   slPrice: "--",
 };

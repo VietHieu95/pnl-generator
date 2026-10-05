@@ -34,8 +34,8 @@ export default function IsolatedCard() {
         }
     }
 
-    if (!hasParams && isLoading) return <div className="bg-[#202630] w-[480px] h-[280px] flex items-center justify-center text-white">Loading...</div>;
-    if (!data) return <div className="bg-[#202630] w-[480px] h-[280px] flex items-center justify-center text-red-500">Error: No PNL data found. Please provide query params or update via POST.</div>;
+    if (!hasParams && isLoading) return <div className="bg-[#202630] w-[480px] h-[297px] flex items-center justify-center text-white">Loading...</div>;
+    if (!data) return <div className="bg-[#202630] w-[480px] h-[297px] flex items-center justify-center text-red-500">Error: No PNL data found. Please provide query params or update via POST.</div>;
 
     return (
         <div className="bg-[#0B0E11] min-h-screen flex items-center justify-center">

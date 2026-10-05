@@ -7,7 +7,7 @@ const SCREENSHOT_OPTIONS = {
   scale: 4,
   backgroundColor: "#202630",
   width: 480,
-  height: 280,
+  height: 297,
   fetch: { requestInit: { mode: "cors" as const } },
   font: { preferredFormat: "woff2" as const },
 };
@@ -29,7 +29,9 @@ const isIOS = () =>
 export function useTradeExport(
   cardRef: RefObject<HTMLDivElement>,
   activeTrade: PnlData | undefined,
-  cardLanguage: "en" | "zh" = "en"
+  cardLanguage: "en" | "zh" = "en",
+  /** Runs before every capture, e.g. to pull the latest live data into the card */
+  beforeCapture?: () => Promise<void>
 ) {
   const { toast } = useToast();
   const [isExporting, setIsExporting] = useState(false);
@@ -50,10 +52,15 @@ export function useTradeExport(
   }, []);
 
   const renderBlob = useCallback(async () => {
+    if (beforeCapture) {
+      await beforeCapture();
+      // Let React commit the refreshed values before the DOM is captured
+      await new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
+    }
     const blob = await domToBlob(cardRef.current!, SCREENSHOT_OPTIONS);
     if (!blob) throw new Error("Failed to generate image.");
     return blob;
-  }, [cardRef]);
+  }, [cardRef, beforeCapture]);
 
   const handleExport = useCallback(async () => {
     if (!cardRef.current) return;

@@ -6,15 +6,18 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Button } from "@/components/ui/button";
 
 import { Wand2 } from "lucide-react";
+import type { RealizedPnlState } from "@/hooks/useRealizedPnl";
+import { DEFAULT_HOLD_HOURS } from "@shared/realizedPnl";
 
 interface PnlFormProps {
   data: PnlData;
   onChange: (data: PnlData) => void;
   onAutoWin?: () => void;
   isLive?: boolean;
+  realized?: RealizedPnlState;
 }
 
-export function PnlForm({ data, onChange, onAutoWin, isLive = false }: PnlFormProps) {
+export function PnlForm({ data, onChange, onAutoWin, isLive = false, realized }: PnlFormProps) {
   // Local editing state: preserves raw text (including commas) while user is typing
   // Fixes iOS keyboard comma decimal separator issue
   const [editingValues, setEditingValues] = useState<Partial<Record<string, string>>>({});
@@ -338,6 +341,55 @@ export function PnlForm({ data, onChange, onAutoWin, isLive = false }: PnlFormPr
             placeholder="--"
           />
         </div>
+        <div className="col-span-2 grid grid-cols-3 gap-2 min-w-0">
+          <div className="space-y-1.5 min-w-0">
+            <Label className="text-[10px] font-bold text-muted-foreground/60 uppercase ml-1">Lệnh</Label>
+            <Select value={data.orderType ?? "market"} onValueChange={(v) => handleFieldChange("orderType", v)}>
+              <SelectTrigger className="h-9 bg-white/2 border-white/5 text-[10px] font-bold px-2 focus:ring-primary/20">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="bg-[#1E2329] border-white/10">
+                <SelectItem value="market">Market (taker)</SelectItem>
+                <SelectItem value="limit">Limit (maker)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1.5 min-w-0">
+            <Label className="text-[10px] font-bold text-muted-foreground/60 uppercase ml-1">Giữ lệnh (giờ)</Label>
+            <Input
+              type="text"
+              inputMode="decimal"
+              value={getDisplayValue("holdHours")}
+              onChange={(e) => handleNumberChange("holdHours", e.target.value)}
+              onBlur={() => handleNumberBlur("holdHours")}
+              className="h-9 bg-white/2 border-white/5 text-xs text-center font-bold"
+              placeholder={String(DEFAULT_HOLD_HOURS)}
+            />
+          </div>
+          <div className="space-y-1.5 min-w-0">
+            <Label className="text-[10px] font-bold text-muted-foreground/60 uppercase ml-1">Realized PNL</Label>
+            <Input
+              type="text"
+              inputMode="decimal"
+              value={getDisplayValue("realizedPnl")}
+              onChange={(e) => handleNumberChange("realizedPnl", e.target.value)}
+              onBlur={() => handleNumberBlur("realizedPnl")}
+              className="h-9 bg-white/2 border-white/5 text-xs text-center font-bold"
+              placeholder={realized ? `Auto ${realized.total.toFixed(2)}` : "Auto"}
+            />
+          </div>
+        </div>
+        {realized && (
+          <p className="col-span-2 text-[10px] leading-snug text-muted-foreground/60 px-1" data-testid="text-realized-breakdown">
+            {realized.isManual
+              ? "Đang dùng số nhập tay — xoá ô Realized PNL để tự tính."
+              : realized.loading && !realized.info
+                ? "Đang lấy funding từ Binance…"
+                : realized.info
+                  ? `Phí mở ${(realized.feeRate * 100).toFixed(4).replace(/0+$/, "")}%: −${realized.fee.toFixed(2)} · Funding ${realized.funding >= 0 ? "+" : "−"}${Math.abs(realized.funding).toFixed(2)} (${realized.fundingCount} lần, ${realized.info.fundingIntervalHours}h/lần) = ${realized.total.toFixed(2)} USDT`
+                  : `Không lấy được funding Binance — chỉ tính phí mở: −${realized.fee.toFixed(2)} USDT`}
+          </p>
+        )}
       </div>
     </div>
   );

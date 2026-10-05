@@ -1,8 +1,9 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { type PnlData } from "../shared/schema";
+import { type PnlData, pnlDataSchema } from "../shared/schema";
 import { calculatePnlValues } from "../shared/calculations";
+import { calcRealizedPnl, fetchSymbolFeeInfo } from "../shared/realizedPnl";
 import { getBrowser } from "./browser";
 
 // -------------------------------------------------------------------
@@ -41,6 +42,17 @@ function inferSizeUnit(symbol?: string): string | undefined {
   }
 
   return undefined;
+}
+
+// Fill realizedPnl from live Binance fee + funding history unless the caller set it explicitly.
+// If Binance is unreachable only the opening fee is counted.
+async function withRealizedPnl<T extends Partial<PnlData>>(data: T): Promise<T> {
+  if (typeof data.realizedPnl === "number" && Number.isFinite(data.realizedPnl)) return data;
+  const info = await fetchSymbolFeeInfo(data.symbol || "").catch((err) => {
+    console.warn(`[RealizedPnl] fee info failed for ${data.symbol}:`, err?.message);
+    return null;
+  });
+  return { ...data, realizedPnl: Number(calcRealizedPnl(data, info).total.toFixed(4)) };
 }
 
 async function fetchBinanceMarkPrice(symbol: string): Promise<number> {
@@ -338,7 +350,7 @@ export async function registerRoutes(
         _reqId: reqId
       } as any);
       
-      const calculatedData = calculatePnlValues(pnlInput);
+      const calculatedData = await withRealizedPnl(calculatePnlValues(pnlInput));
       
       const params = new URLSearchParams();
       Object.entries(calculatedData).forEach(([k, v]) => {
@@ -357,6 +369,7 @@ export async function registerRoutes(
         unrealizedPnl: calculatedData.unrealizedPnl,
         entryPrice: calculatedData.entryPrice,
         markPrice: calculatedData.markPrice,
+        realizedPnl: calculatedData.realizedPnl,
         imageUrl: imageUrl,
       });
     } catch (error: any) {
@@ -396,7 +409,7 @@ export async function registerRoutes(
       } as any);
       
       // 4. Calculate final values
-      const calculatedData = calculatePnlValues(pnlInput);
+      const calculatedData = await withRealizedPnl(calculatePnlValues(pnlInput));
       
       // 5. Generate Image URL Params
       const params = new URLSearchParams();
@@ -410,7 +423,7 @@ export async function registerRoutes(
       const page = await browser.newPage();
       
       try {
-        await page.setViewport({ width: 480, height: 280, deviceScaleFactor: 4 });
+        await page.setViewport({ width: 480, height: 297, deviceScaleFactor: 4 });
         
         // Dynamic URL detection for Vercel vs Local
         const host = req.headers.host || "localhost:3000";
@@ -455,16 +468,26 @@ export async function registerRoutes(
         return res.send(cached);
       }
 
+      // Realized PNL depends on live funding history, so compute it here unless given
+      let renderParams = urlParams;
+      if (req.query.symbol && req.query.realizedPnl === undefined) {
+        const parsed = pnlDataSchema.safeParse(req.query);
+        if (parsed.success) {
+          const { realizedPnl } = await withRealizedPnl(parsed.data);
+          renderParams += `&realizedPnl=${realizedPnl}`;
+        }
+      }
+
       const browser = await getBrowser();
       page = await browser.newPage();
 
       // Set high resolution viewport (4x for maximum sharpness)
-      await page.setViewport({ width: 480, height: 280, deviceScaleFactor: 4 });
+      await page.setViewport({ width: 480, height: 297, deviceScaleFactor: 4 });
 
       // Dynamic URL detection
       const host = req.headers.host || "localhost:3000";
       const protocol = req.headers['x-forwarded-proto'] || "http";
-      const url = `${protocol}://${host}/isolated-card${urlParams ? `?${urlParams}` : ""}`;
+      const url = `${protocol}://${host}/isolated-card${renderParams ? `?${renderParams}` : ""}`;
 
       try {
         await page.goto(url, {

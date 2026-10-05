@@ -17,6 +17,8 @@ export const insertUserSchema = createInsertSchema(users).pick({
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 
+const emptyToUndefined = (v: unknown) => (v === "" || v === null ? undefined : v);
+
 export const pnlDataSchema = z.object({
   id: z.string().optional(),
   symbol: z.string().default("BTCUSDT"),
@@ -35,6 +37,11 @@ export const pnlDataSchema = z.object({
   markPrice: z.coerce.number().default(87689.94),
   liqPrice: z.coerce.number().default(80812.02),
   walletBalance: z.coerce.number().default(10000),
+  // Optional manual override; when absent it is computed from Binance fee + funding (shared/realizedPnl.ts).
+  // A cleared form field ("") must stay "absent", not coerce to 0.
+  realizedPnl: z.preprocess(emptyToUndefined, z.coerce.number().optional()),
+  holdHours: z.preprocess(emptyToUndefined, z.coerce.number().min(0).max(168).default(8)),
+  orderType: z.enum(["market", "limit"]).default("market"),
   tpPrice: z.string().default("--"),
   slPrice: z.string().default("--"),
 });
