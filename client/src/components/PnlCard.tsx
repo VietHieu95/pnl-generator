@@ -20,6 +20,7 @@ const DARK_COLORS = {
   value: "#ebeef4",
   green: "#5fb98a",
   red: "#e25460",
+  yellow: "#e8c04c",
   icon: "#737a87",
   chevron: "#949da8",
   dots: "#80848d",
@@ -36,6 +37,7 @@ const LIGHT_COLORS: typeof DARK_COLORS = {
   value: "#000000",
   green: "#00c07c",
   red: "#e8325c",
+  yellow: "#c99400",
   icon: "#999999",
   chevron: "#787878",
   dots: "#808080",
@@ -84,6 +86,9 @@ const LABELS = {
   },
 };
 
+
+const MARGIN_RATIO_WARN = 30; // %: green below, yellow from here (estimate, see marginRatioColor)
+const MARGIN_RATIO_DANGER = 80; // %: red above, as in Binance's web code
 
 // PNL / ROI headline numbers: tabular digits in the large-size (display) cut with
 // slightly tight tracking, measured against the reference app. Proportional digits
@@ -148,6 +153,12 @@ export function PnlCard({ data, language = "en", theme = "dark" }: PnlCardProps)
       : calcRealizedPnl(data, null).total;
 
   const signColor = (num: number) => (num >= 0 ? COLORS.green : COLORS.red);
+  // Margin Ratio is a risk gauge, not a sign. Binance's own web code turns it red
+  // above 80% (liquidation at 100%); the app also shows a yellow middle band
+  // (0,14% green, 47,90% yellow in the reference screenshots). The green/yellow
+  // cut is not published, so MARGIN_RATIO_WARN is a best estimate.
+  const marginRatioColor = (ratio: number) =>
+    ratio > MARGIN_RATIO_DANGER ? COLORS.red : ratio >= MARGIN_RATIO_WARN ? COLORS.yellow : COLORS.green;
 
   const renderNumber = (text: string) => {
     const numberFont = {
@@ -329,7 +340,7 @@ export function PnlCard({ data, language = "en", theme = "dark" }: PnlCardProps)
         </div>
         <div className="flex flex-col items-end">
           {label(t.marginRatio, true)}
-          <div className="text-[14.5px] leading-none mt-[2.5px]" style={{ color: signColor(data.marginRatio) }} data-testid="text-margin-ratio">
+          <div className="text-[14.5px] leading-none mt-[2.5px]" style={{ color: marginRatioColor(data.marginRatio) }} data-testid="text-margin-ratio">
             {renderNumber(`${formatFixed(data.marginRatio, 2)}%`)}
           </div>
         </div>
