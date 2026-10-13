@@ -18,9 +18,9 @@ const DARK_COLORS = {
   bg: "#212630",
   label: "#979ca8",
   value: "#ebeef4",
-  green: "#5fb98a",
-  red: "#e25460",
-  yellow: "#e8c04c",
+  green: "#2ebd85",
+  red: "#f6465d",
+  yellow: "#f0b90b",
   icon: "#737a87",
   chevron: "#949da8",
   dots: "#80848d",
@@ -86,6 +86,9 @@ const LABELS = {
   },
 };
 
+
+// Extra gaps (CSS px) around separators in the headline numbers, from the reference.
+const BIG_GAP = { sign: "-0.6px", dotL: "1.2px", dotR: "0.95px", commaL: "1px", commaR: "0px" };
 
 const MARGIN_RATIO_WARN = 30; // %: green below, yellow from here (estimate, see marginRatioColor)
 const MARGIN_RATIO_DANGER = 80; // %: red above, as in Binance's web code
@@ -159,6 +162,33 @@ export function PnlCard({ data, language = "en", theme = "dark" }: PnlCardProps)
   // cut is not published, so MARGIN_RATIO_WARN is a best estimate.
   const marginRatioColor = (ratio: number) =>
     ratio > MARGIN_RATIO_DANGER ? COLORS.red : ratio >= MARGIN_RATIO_WARN ? COLORS.yellow : COLORS.green;
+
+  // Headline PNL / ROI: every separator gets the gap measured on the reference
+  // (+15.884,62 / +39,92%). Plain text left "5." / "4," cramped and read as glued.
+  const renderBigNumber = (text: string) => {
+    const numberFont = { fontFamily: '-apple-system, BlinkMacSystemFont, "Inter", sans-serif' };
+    const commaFont = { fontFamily: "'IBM Plex Sans', sans-serif", fontSize: "0.85em" };
+    const out: ReactNode[] = [];
+    let run = "";
+    const flush = (key: number) => {
+      if (run) out.push(<span key={`r${key}`} style={numberFont}>{run}</span>);
+      run = "";
+    };
+    text.split("").forEach((ch, i) => {
+      if (ch === "+" || ch === "-") {
+        flush(i);
+        out.push(<span key={i} style={{ ...numberFont, marginRight: BIG_GAP.sign }}>{ch}</span>);
+      } else if (ch === ".") {
+        flush(i);
+        out.push(<span key={i} style={{ ...numberFont, marginLeft: BIG_GAP.dotL, marginRight: BIG_GAP.dotR }}>.</span>);
+      } else if (ch === ",") {
+        flush(i);
+        out.push(<span key={i} style={{ ...commaFont, marginLeft: BIG_GAP.commaL, marginRight: BIG_GAP.commaR }}>,</span>);
+      } else run += ch;
+    });
+    flush(text.length);
+    return <>{out}</>;
+  };
 
   const renderNumber = (text: string) => {
     const numberFont = {
@@ -306,7 +336,7 @@ export function PnlCard({ data, language = "en", theme = "dark" }: PnlCardProps)
             style={{ color: signColor(data.unrealizedPnl), ...BIG_NUMBER }}
             data-testid="text-pnl"
           >
-            {renderNumber(formatSigned(data.unrealizedPnl))}
+            {renderBigNumber(formatSigned(data.unrealizedPnl))}
           </div>
         </div>
         <div className="flex flex-col items-end">
@@ -316,7 +346,7 @@ export function PnlCard({ data, language = "en", theme = "dark" }: PnlCardProps)
             style={{ color: signColor(data.roi), ...BIG_NUMBER }}
             data-testid="text-roi"
           >
-            {renderNumber(formatSigned(data.roi) + "%")}
+            {renderBigNumber(formatSigned(data.roi) + "%")}
           </div>
         </div>
       </div>
