@@ -214,9 +214,9 @@ export function PnlCard({ data, language = "en", theme = "dark" }: PnlCardProps)
   // Tag outline = a 1px border on a 200% box scaled to 50% (a true 0.5px hairline).
   // A 0.5px CSS border is rounded up to 1px by Chrome (exports came out twice as
   // thick) and the export drops inset box-shadows in Safari/iOS (outline vanished).
-  // px 5px = the old 4.5px padding + 0.5px border, so the layout is unchanged.
+  // px/pt measured from the reference: text centred in the 17.5px box, ~6.2px side gaps.
   const tagClass =
-    "relative h-[17.5px] inline-flex items-center shrink-0 whitespace-nowrap rounded-[3px] px-[5px] text-[11px] leading-none font-[370]";
+    "relative h-[17.5px] inline-flex items-center shrink-0 whitespace-nowrap rounded-[3px] px-[5.5px] pt-[1.75px] text-[11px] leading-none font-[370]";
   const tagStyle = { backgroundColor: COLORS.tagBg, color: COLORS.value };
   const tagOutline = (
     <span
@@ -270,7 +270,7 @@ export function PnlCard({ data, language = "en", theme = "dark" }: PnlCardProps)
           {tagOutline}
           {data.marginMode === "Cross" ? t.cross : t.isolated} {data.leverage}X
         </span>
-        <span className="ml-[6.25px] tracking-[-0.9px] font-light text-[17px] leading-none flex shrink-0">
+        <span className="ml-[5px] tracking-[-0.9px] font-light text-[17px] leading-none flex shrink-0">
           {[1, 2, 3, 4].map((i) => (
             <span key={i} style={{ color: i <= data.signalBars ? COLORS.green : COLORS.icon }}>!</span>
           ))}
