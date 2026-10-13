@@ -86,6 +86,14 @@ const LABELS = {
 
 const DOT_LINE = "••••••••••••••••••••••••••••••••••••••••••••••••";
 
+// Side-badge letters as Inter SemiBold outlines (12.5px), pre-centred in the 17.5px
+// badge. Text there depends on each browser's font metrics, and the Safari/iOS export
+// put S/B ~1px off; a path renders identically everywhere.
+const SIDE_GLYPH = {
+  S: "M8.79 13.43Q7.74 13.43 6.96 13.1Q6.18 12.77 5.74 12.14Q5.3 11.51 5.27 10.61H6.87Q6.91 11.09 7.17 11.41Q7.43 11.72 7.85 11.88Q8.27 12.04 8.78 12.04Q9.32 12.04 9.73 11.87Q10.14 11.71 10.37 11.41Q10.61 11.11 10.61 10.72Q10.61 10.37 10.4 10.14Q10.2 9.9 9.83 9.74Q9.46 9.58 8.96 9.46L7.93 9.19Q6.79 8.9 6.15 8.31Q5.51 7.71 5.51 6.75Q5.51 5.95 5.95 5.34Q6.38 4.74 7.13 4.41Q7.88 4.07 8.84 4.07Q9.81 4.07 10.54 4.41Q11.27 4.74 11.68 5.33Q12.09 5.92 12.11 6.69H10.53Q10.47 6.1 10.01 5.78Q9.55 5.46 8.81 5.46Q8.3 5.46 7.93 5.61Q7.56 5.77 7.36 6.04Q7.16 6.31 7.16 6.65Q7.16 7.03 7.4 7.28Q7.63 7.52 7.99 7.67Q8.35 7.81 8.71 7.91L9.56 8.12Q10.07 8.24 10.54 8.45Q11.02 8.65 11.4 8.96Q11.79 9.27 12.01 9.7Q12.23 10.14 12.23 10.73Q12.23 11.53 11.83 12.14Q11.42 12.75 10.65 13.09Q9.88 13.43 8.79 13.43Z",
+  B: "M5.37 13.3V4.2H8.85Q9.83 4.2 10.48 4.51Q11.13 4.82 11.46 5.36Q11.78 5.89 11.78 6.56Q11.78 7.12 11.57 7.51Q11.36 7.91 11 8.15Q10.64 8.39 10.19 8.5V8.59Q10.68 8.61 11.12 8.88Q11.57 9.15 11.85 9.64Q12.13 10.13 12.13 10.82Q12.13 11.52 11.79 12.09Q11.45 12.65 10.77 12.97Q10.08 13.3 9.04 13.3ZM7 11.93H8.78Q9.68 11.93 10.08 11.59Q10.48 11.24 10.48 10.7Q10.48 10.29 10.28 9.96Q10.08 9.64 9.71 9.44Q9.34 9.25 8.83 9.25H7ZM7 8.08H8.64Q9.07 8.08 9.41 7.92Q9.76 7.76 9.96 7.47Q10.15 7.17 10.15 6.77Q10.15 6.24 9.78 5.9Q9.41 5.56 8.68 5.56H7Z",
+};
+
 export function PnlCard({ data, language = "en", theme = "dark" }: PnlCardProps) {
   const isZh = language === "zh";
   const isLight = theme === "light";
@@ -193,16 +201,20 @@ export function PnlCard({ data, language = "en", theme = "dark" }: PnlCardProps)
     />
   );
 
-  // Hairline drawn as an inset shadow, not a 0.5px border: Chrome rounds sub-pixel
-  // borders up to 1 CSS px, so exports/server renders came out twice as thick as the
-  // preview. px 5px = the old 4.5px padding + 0.5px border, so the layout is unchanged.
+  // Tag outline = a 1px border on a 200% box scaled to 50% (a true 0.5px hairline).
+  // A 0.5px CSS border is rounded up to 1px by Chrome (exports came out twice as
+  // thick) and the export drops inset box-shadows in Safari/iOS (outline vanished).
+  // px 5px = the old 4.5px padding + 0.5px border, so the layout is unchanged.
   const tagClass =
-    "h-[17.5px] inline-flex items-center shrink-0 whitespace-nowrap rounded-[3px] px-[5px] text-[11px] leading-none font-normal";
-  const tagStyle = {
-    backgroundColor: COLORS.tagBg,
-    boxShadow: `inset 0 0 0 0.5px ${COLORS.tagBorder}`,
-    color: COLORS.value,
-  };
+    "relative h-[17.5px] inline-flex items-center shrink-0 whitespace-nowrap rounded-[3px] px-[5px] text-[11px] leading-none font-normal";
+  const tagStyle = { backgroundColor: COLORS.tagBg, color: COLORS.value };
+  const tagOutline = (
+    <span
+      aria-hidden="true"
+      className="absolute left-0 top-0 w-[200%] h-[200%] rounded-[6px] border border-solid pointer-events-none origin-top-left scale-50 box-border"
+      style={{ borderColor: COLORS.tagBorder }}
+    />
+  );
   const isShort = data.positionType === "Short";
 
   return (
@@ -223,8 +235,9 @@ export function PnlCard({ data, language = "en", theme = "dark" }: PnlCardProps)
           className="w-[17.5px] h-[17.5px] rounded-[3px] flex items-center justify-center shrink-0"
           style={{ backgroundColor: isShort ? COLORS.red : COLORS.green }}
         >
-          {/* leading-none centres the em box, not the capital, which left S/B ~1.1px high. */}
-          <span className="text-white text-[12.5px] font-semibold leading-none translate-y-[1.125px]">{isShort ? "S" : "B"}</span>
+          <svg width="17.5" height="17.5" viewBox="0 0 17.5 17.5" aria-label={isShort ? "S" : "B"} className="block">
+            <path d={isShort ? SIDE_GLYPH.S : SIDE_GLYPH.B} fill="#ffffff" />
+          </svg>
         </div>
         <span
           className="ml-[5.5px] text-[16px] font-semibold leading-none truncate"
@@ -234,9 +247,11 @@ export function PnlCard({ data, language = "en", theme = "dark" }: PnlCardProps)
           {data.symbol}
         </span>
         <span className={`${tagClass} ml-[3px]`} style={tagStyle}>
+          {tagOutline}
           {data.type === "Perp" ? t.perp : t.quarterly}
         </span>
         <span className={`${tagClass} ml-[2.5px]`} style={tagStyle}>
+          {tagOutline}
           {data.marginMode === "Cross" ? t.cross : t.isolated} {data.leverage}X
         </span>
         <span className="ml-[5px] tracking-[-0.5px] font-light text-[17px] leading-none flex shrink-0">
