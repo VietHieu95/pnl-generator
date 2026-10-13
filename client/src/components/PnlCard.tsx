@@ -28,23 +28,32 @@ const DARK_COLORS = {
   tagBorder: "#444b58",
   boxBorder: "#353a46",
   button: "#333a47",
+  // Fills (S/B badge, active ADL bar) use the same accents as text on dark.
+  sideGreen: "#2ebd85",
+  sideRed: "#f6465d",
+  labelWeight: 400,
 };
 
 // Light mode, sampled from a Binance app screenshot in light mode
+// Light mode, measured on the light reference screenshot: text accents are a
+// darker green/red than the badge fill (contrast on white), labels a touch lighter.
 const LIGHT_COLORS: typeof DARK_COLORS = {
   bg: "#ffffff",
-  label: "#747474",
+  label: "#707070",
   value: "#000000",
-  green: "#00c07c",
-  red: "#e8325c",
+  green: "#0ab37a",
+  red: "#cf335b",
   yellow: "#c99400",
-  icon: "#999999",
-  chevron: "#787878",
-  dots: "#808080",
-  tagBg: "#f4f4f4",
-  tagBorder: "#f4f4f4",
-  boxBorder: "#e8e8e8",
+  icon: "#a3a3a3",
+  chevron: "#808080",
+  dots: "#888888",
+  tagBg: "#f5f5f5",
+  tagBorder: "#f5f5f5",
+  boxBorder: "#e8e8eb",
   button: "#f0f0f0",
+  sideGreen: "#02bf7f",
+  sideRed: "#f6465d",
+  labelWeight: 370,
 };
 
 const LABELS = {
@@ -244,7 +253,7 @@ export function PnlCard({ data, language = "en", theme = "dark" }: PnlCardProps)
   );
 
   const label = (text: string, underlined: boolean) => (
-    <div className="text-[12px] leading-none h-[17px] flex items-start whitespace-nowrap" style={{ color: COLORS.label }}>
+    <div className="text-[12px] leading-none h-[17px] flex items-start whitespace-nowrap" style={{ color: COLORS.label, fontWeight: COLORS.labelWeight }}>
       {underlined ? dotted(text) : <span className="leading-none">{text}</span>}
     </div>
   );
@@ -304,7 +313,7 @@ export function PnlCard({ data, language = "en", theme = "dark" }: PnlCardProps)
       <div className="flex items-center h-[17.5px] min-w-0">
         <div
           className="w-[17px] h-[17px] rounded-[3px] flex items-center justify-center shrink-0"
-          style={{ backgroundColor: isShort ? COLORS.red : COLORS.green }}
+          style={{ backgroundColor: isShort ? COLORS.sideRed : COLORS.sideGreen }}
         >
           <svg width="17" height="17" viewBox="0 0 17 17" aria-label={isShort ? "S" : "B"} className="block">
             <path d={isShort ? SIDE_GLYPH.S : SIDE_GLYPH.B} fill="#ffffff" />
@@ -327,7 +336,7 @@ export function PnlCard({ data, language = "en", theme = "dark" }: PnlCardProps)
         </span>
         <span className="ml-[5px] tracking-[-0.9px] font-light text-[17px] leading-none flex shrink-0">
           {[1, 2, 3, 4].map((i) => (
-            <span key={i} style={{ color: i <= data.signalBars ? COLORS.green : COLORS.icon }}>!</span>
+            <span key={i} style={{ color: i <= data.signalBars ? COLORS.sideGreen : COLORS.icon }}>!</span>
           ))}
         </span>
       </div>
@@ -335,7 +344,7 @@ export function PnlCard({ data, language = "en", theme = "dark" }: PnlCardProps)
       {/* PNL / ROI */}
       <div className="flex justify-between mt-[19px]">
         <div>
-          <div className="text-[12px] leading-none h-[17px] flex items-start gap-[4.75px]" style={{ color: COLORS.label }}>
+          <div className="text-[12px] leading-none h-[17px] flex items-start gap-[4.75px]" style={{ color: COLORS.label, fontWeight: COLORS.labelWeight }}>
             {dotted(t.pnl)}
             <Share2
               className="shrink-0 -translate-y-[1.5px]"
@@ -367,7 +376,7 @@ export function PnlCard({ data, language = "en", theme = "dark" }: PnlCardProps)
       {/* Size / Margin / Margin Ratio */}
       <div className="grid grid-cols-[152.5px_1fr_auto] mt-[14px]">
         <div>
-          <div className="text-[12px] leading-none h-[17px] flex items-start gap-[1.5px] whitespace-nowrap" style={{ color: COLORS.label }}>
+          <div className="text-[12px] leading-none h-[17px] flex items-start gap-[1.5px] whitespace-nowrap" style={{ color: COLORS.label, fontWeight: COLORS.labelWeight }}>
             <span className="leading-none">{t.size(data.sizeUnit.toUpperCase())}</span>
             {swapIcon}
           </div>
@@ -417,7 +426,7 @@ export function PnlCard({ data, language = "en", theme = "dark" }: PnlCardProps)
         style={{ borderColor: COLORS.boxBorder }}
         data-testid="row-realized-pnl"
       >
-        <span className="text-[12px] leading-none whitespace-nowrap" style={{ color: COLORS.label }}>
+        <span className="text-[12px] leading-none whitespace-nowrap" style={{ color: COLORS.label, fontWeight: COLORS.labelWeight }}>
           {t.realizedPnl}
         </span>
         <span className="flex items-center gap-[4px] shrink-0 whitespace-nowrap">
