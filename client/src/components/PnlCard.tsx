@@ -193,9 +193,16 @@ export function PnlCard({ data, language = "en", theme = "dark" }: PnlCardProps)
     />
   );
 
+  // Hairline drawn as an inset shadow, not a 0.5px border: Chrome rounds sub-pixel
+  // borders up to 1 CSS px, so exports/server renders came out twice as thick as the
+  // preview. px 5px = the old 4.5px padding + 0.5px border, so the layout is unchanged.
   const tagClass =
-    "h-[17.5px] inline-flex items-center shrink-0 whitespace-nowrap rounded-[3px] border-[0.5px] px-[4.5px] text-[11px] leading-none font-normal";
-  const tagStyle = { backgroundColor: COLORS.tagBg, borderColor: COLORS.tagBorder, color: COLORS.value };
+    "h-[17.5px] inline-flex items-center shrink-0 whitespace-nowrap rounded-[3px] px-[5px] text-[11px] leading-none font-normal";
+  const tagStyle = {
+    backgroundColor: COLORS.tagBg,
+    boxShadow: `inset 0 0 0 0.5px ${COLORS.tagBorder}`,
+    color: COLORS.value,
+  };
   const isShort = data.positionType === "Short";
 
   return (
