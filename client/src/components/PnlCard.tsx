@@ -18,11 +18,11 @@ const DARK_COLORS = {
   bg: "#212630",
   label: "#979ca8",
   value: "#ebeef4",
-  green: "#2ebd85",
-  red: "#f6465d",
+  green: "#5fb98a",
+  red: "#e25460",
   icon: "#737a87",
   chevron: "#949da8",
-  dots: "#70757f",
+  dots: "#80848d",
   tagBg: "#28303d",
   tagBorder: "#444b58",
   boxBorder: "#353a46",
@@ -84,14 +84,17 @@ const LABELS = {
   },
 };
 
-const DOT_LINE = "••••••••••••••••••••••••••••••••••••••••••••••••";
 
-// Side-badge letters as Inter SemiBold outlines (12.5px), pre-centred in the 17.5px
+// PNL / ROI headline numbers: proportional digits and slightly tight tracking, as in
+// the reference app (tabular digits made "-2,18%" ~10% wider than the reference).
+const BIG_NUMBER = { fontFeatureSettings: "normal", letterSpacing: "-0.6px" } as const;
+
+// Side-badge letters as Inter SemiBold outlines (12.5px), pre-centred in the 17px
 // badge. Text there depends on each browser's font metrics, and the Safari/iOS export
 // put S/B ~1px off; a path renders identically everywhere.
 const SIDE_GLYPH = {
-  S: "M8.79 13.43Q7.74 13.43 6.96 13.1Q6.18 12.77 5.74 12.14Q5.3 11.51 5.27 10.61H6.87Q6.91 11.09 7.17 11.41Q7.43 11.72 7.85 11.88Q8.27 12.04 8.78 12.04Q9.32 12.04 9.73 11.87Q10.14 11.71 10.37 11.41Q10.61 11.11 10.61 10.72Q10.61 10.37 10.4 10.14Q10.2 9.9 9.83 9.74Q9.46 9.58 8.96 9.46L7.93 9.19Q6.79 8.9 6.15 8.31Q5.51 7.71 5.51 6.75Q5.51 5.95 5.95 5.34Q6.38 4.74 7.13 4.41Q7.88 4.07 8.84 4.07Q9.81 4.07 10.54 4.41Q11.27 4.74 11.68 5.33Q12.09 5.92 12.11 6.69H10.53Q10.47 6.1 10.01 5.78Q9.55 5.46 8.81 5.46Q8.3 5.46 7.93 5.61Q7.56 5.77 7.36 6.04Q7.16 6.31 7.16 6.65Q7.16 7.03 7.4 7.28Q7.63 7.52 7.99 7.67Q8.35 7.81 8.71 7.91L9.56 8.12Q10.07 8.24 10.54 8.45Q11.02 8.65 11.4 8.96Q11.79 9.27 12.01 9.7Q12.23 10.14 12.23 10.73Q12.23 11.53 11.83 12.14Q11.42 12.75 10.65 13.09Q9.88 13.43 8.79 13.43Z",
-  B: "M5.37 13.3V4.2H8.85Q9.83 4.2 10.48 4.51Q11.13 4.82 11.46 5.36Q11.78 5.89 11.78 6.56Q11.78 7.12 11.57 7.51Q11.36 7.91 11 8.15Q10.64 8.39 10.19 8.5V8.59Q10.68 8.61 11.12 8.88Q11.57 9.15 11.85 9.64Q12.13 10.13 12.13 10.82Q12.13 11.52 11.79 12.09Q11.45 12.65 10.77 12.97Q10.08 13.3 9.04 13.3ZM7 11.93H8.78Q9.68 11.93 10.08 11.59Q10.48 11.24 10.48 10.7Q10.48 10.29 10.28 9.96Q10.08 9.64 9.71 9.44Q9.34 9.25 8.83 9.25H7ZM7 8.08H8.64Q9.07 8.08 9.41 7.92Q9.76 7.76 9.96 7.47Q10.15 7.17 10.15 6.77Q10.15 6.24 9.78 5.9Q9.41 5.56 8.68 5.56H7Z",
+  S: "M8.54 13.18Q7.49 13.18 6.71 12.85Q5.93 12.52 5.49 11.89Q5.05 11.26 5.02 10.36H6.62Q6.66 10.84 6.92 11.16Q7.18 11.47 7.6 11.63Q8.02 11.79 8.53 11.79Q9.07 11.79 9.48 11.62Q9.89 11.46 10.12 11.16Q10.36 10.86 10.36 10.47Q10.36 10.12 10.15 9.89Q9.95 9.65 9.58 9.49Q9.21 9.33 8.71 9.21L7.68 8.94Q6.54 8.65 5.9 8.06Q5.26 7.46 5.26 6.5Q5.26 5.7 5.7 5.09Q6.13 4.49 6.88 4.16Q7.63 3.82 8.59 3.82Q9.56 3.82 10.29 4.16Q11.02 4.49 11.43 5.08Q11.84 5.67 11.86 6.44H10.28Q10.22 5.85 9.76 5.53Q9.3 5.21 8.56 5.21Q8.05 5.21 7.68 5.36Q7.31 5.52 7.11 5.79Q6.91 6.06 6.91 6.4Q6.91 6.78 7.15 7.03Q7.38 7.27 7.74 7.42Q8.1 7.56 8.46 7.66L9.31 7.87Q9.82 7.99 10.29 8.2Q10.77 8.4 11.15 8.71Q11.54 9.02 11.76 9.45Q11.98 9.89 11.98 10.48Q11.98 11.28 11.58 11.89Q11.17 12.5 10.4 12.84Q9.63 13.18 8.54 13.18Z",
+  B: "M5.12 13.05V3.95H8.6Q9.58 3.95 10.23 4.26Q10.88 4.57 11.21 5.11Q11.53 5.64 11.53 6.31Q11.53 6.87 11.32 7.26Q11.11 7.66 10.75 7.9Q10.39 8.14 9.94 8.25V8.34Q10.43 8.36 10.87 8.63Q11.32 8.9 11.6 9.39Q11.88 9.88 11.88 10.57Q11.88 11.27 11.54 11.84Q11.2 12.4 10.52 12.72Q9.83 13.05 8.79 13.05ZM6.75 11.68H8.53Q9.43 11.68 9.83 11.34Q10.23 10.99 10.23 10.45Q10.23 10.04 10.03 9.71Q9.83 9.39 9.46 9.19Q9.09 9 8.58 9H6.75ZM6.75 7.83H8.39Q8.82 7.83 9.16 7.67Q9.51 7.51 9.71 7.22Q9.9 6.92 9.9 6.52Q9.9 5.99 9.53 5.65Q9.16 5.31 8.43 5.31H6.75Z",
 };
 
 export function PnlCard({ data, language = "en", theme = "dark" }: PnlCardProps) {
@@ -130,6 +133,9 @@ export function PnlCard({ data, language = "en", theme = "dark" }: PnlCardProps)
   // Liq price: at least the entry precision, more if the value carries it
   const liqDecimals = Math.min(Math.max(decimalsOf(data.liqPrice), entryDecimals), 8);
 
+  // Coin sizes below 1 show at least 3 decimals, like the exchange (0,010 ETH, not 0,01)
+  const sizeDecimals = Math.abs(data.size) < 1 ? Math.min(Math.max(decimalsOf(data.size), 3), 8) : undefined;
+
   const formatSigned = (num: number) => (num >= 0 ? "+" : "") + formatFixed(num, 2);
 
   const sizeUsdt =
@@ -144,7 +150,10 @@ export function PnlCard({ data, language = "en", theme = "dark" }: PnlCardProps)
 
   const renderNumber = (text: string) => {
     const numberFont = {
-      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Inter", sans-serif',
+      // Apple devices draw digits in SF Pro like the reference app; everywhere else
+      // (the Linux render server, Windows, Android) falls to the embedded Inter
+      // instead of Roboto/Segoe UI, which looked nothing like the reference.
+      fontFamily: '-apple-system, BlinkMacSystemFont, "Inter", sans-serif',
     };
     const commaFont = {
       fontFamily: "'IBM Plex Sans', sans-serif",
@@ -165,16 +174,17 @@ export function PnlCard({ data, language = "en", theme = "dark" }: PnlCardProps)
     );
   };
 
+  // Dotted underline: 0.75px dots every 2.2px, measured from the reference screenshot.
   const dotted = (content: ReactNode, className = "") => (
     <span className={`relative inline-block whitespace-nowrap pb-[5px] leading-none ${className}`}>
       <span>{content}</span>
       <span
         aria-hidden="true"
-        className="absolute bottom-0 left-0 right-0 block overflow-hidden whitespace-nowrap text-[4px] tracking-[0.5px] leading-none"
-        style={{ color: COLORS.dots }}
-      >
-        {DOT_LINE}
-      </span>
+        className="absolute left-0 right-0 bottom-[1.35px] block h-[0.75px]"
+        style={{
+          backgroundImage: `repeating-linear-gradient(90deg, ${COLORS.dots} 0 0.75px, transparent 0.75px 2.2px)`,
+        }}
+      />
     </span>
   );
 
@@ -206,7 +216,7 @@ export function PnlCard({ data, language = "en", theme = "dark" }: PnlCardProps)
   // thick) and the export drops inset box-shadows in Safari/iOS (outline vanished).
   // px 5px = the old 4.5px padding + 0.5px border, so the layout is unchanged.
   const tagClass =
-    "relative h-[17.5px] inline-flex items-center shrink-0 whitespace-nowrap rounded-[3px] px-[5px] text-[11px] leading-none font-normal";
+    "relative h-[17.5px] inline-flex items-center shrink-0 whitespace-nowrap rounded-[3px] px-[5px] text-[11px] leading-none font-[370]";
   const tagStyle = { backgroundColor: COLORS.tagBg, color: COLORS.value };
   const tagOutline = (
     <span
@@ -224,6 +234,12 @@ export function PnlCard({ data, language = "en", theme = "dark" }: PnlCardProps)
         backgroundColor: COLORS.bg,
         fontFamily: `"Inter", "SF Pro Display", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,${isZh ? ' "Noto Sans TC",' : ""} sans-serif`,
         fontFeatureSettings: '"tnum"',
+        // Base weight pinned here: on the Home page the card sat inside a font-medium
+        // wrapper, so every label/value inherited 500 and the preview + PNG export came
+        // out ~20% bolder than the reference (the server's /isolated-card used 400).
+        fontWeight: 400,
+        WebkitFontSmoothing: "antialiased",
+        MozOsxFontSmoothing: "grayscale",
       }}
       data-testid="pnl-card"
       data-language={language}
@@ -232,29 +248,29 @@ export function PnlCard({ data, language = "en", theme = "dark" }: PnlCardProps)
       {/* Header: side badge, symbol, tags, ADL bars */}
       <div className="flex items-center h-[17.5px] min-w-0">
         <div
-          className="w-[17.5px] h-[17.5px] rounded-[3px] flex items-center justify-center shrink-0"
+          className="w-[17px] h-[17px] rounded-[3px] flex items-center justify-center shrink-0"
           style={{ backgroundColor: isShort ? COLORS.red : COLORS.green }}
         >
-          <svg width="17.5" height="17.5" viewBox="0 0 17.5 17.5" aria-label={isShort ? "S" : "B"} className="block">
+          <svg width="17" height="17" viewBox="0 0 17 17" aria-label={isShort ? "S" : "B"} className="block">
             <path d={isShort ? SIDE_GLYPH.S : SIDE_GLYPH.B} fill="#ffffff" />
           </svg>
         </div>
         <span
-          className="ml-[5.5px] text-[16px] font-semibold leading-none truncate"
+          className="ml-[6px] text-[16px] font-[560] leading-none truncate tracking-[0.2px]"
           style={{ color: COLORS.value }}
           data-testid="text-symbol"
         >
           {data.symbol}
         </span>
-        <span className={`${tagClass} ml-[3px]`} style={tagStyle}>
+        <span className={`${tagClass} ml-[2.75px]`} style={tagStyle}>
           {tagOutline}
           {data.type === "Perp" ? t.perp : t.quarterly}
         </span>
-        <span className={`${tagClass} ml-[2.5px]`} style={tagStyle}>
+        <span className={`${tagClass} ml-[3.5px]`} style={tagStyle}>
           {tagOutline}
           {data.marginMode === "Cross" ? t.cross : t.isolated} {data.leverage}X
         </span>
-        <span className="ml-[5px] tracking-[-0.5px] font-light text-[17px] leading-none flex shrink-0">
+        <span className="ml-[6.25px] tracking-[-0.9px] font-light text-[17px] leading-none flex shrink-0">
           {[1, 2, 3, 4].map((i) => (
             <span key={i} style={{ color: i <= data.signalBars ? COLORS.green : COLORS.icon }}>!</span>
           ))}
@@ -264,18 +280,18 @@ export function PnlCard({ data, language = "en", theme = "dark" }: PnlCardProps)
       {/* PNL / ROI */}
       <div className="flex justify-between mt-[19px]">
         <div>
-          <div className="text-[12px] leading-none h-[17px] flex items-start gap-[6px]" style={{ color: COLORS.label }}>
+          <div className="text-[12px] leading-none h-[17px] flex items-start gap-[4.75px]" style={{ color: COLORS.label }}>
             {dotted(t.pnl)}
             <Share2
               className="shrink-0 -translate-y-[1.5px]"
-              style={{ width: "14px", height: "14px", color: COLORS.icon }}
+              style={{ width: "15.5px", height: "15.5px", color: COLORS.icon }}
               strokeWidth={2}
               data-testid="button-share"
             />
           </div>
           <div
-            className="font-bold text-[18px] leading-none mt-[3px]"
-            style={{ color: signColor(data.unrealizedPnl) }}
+            className="font-[640] text-[19.5px] leading-none mt-[2.5px]"
+            style={{ color: signColor(data.unrealizedPnl), ...BIG_NUMBER }}
             data-testid="text-pnl"
           >
             {renderNumber(formatSigned(data.unrealizedPnl))}
@@ -284,8 +300,8 @@ export function PnlCard({ data, language = "en", theme = "dark" }: PnlCardProps)
         <div className="flex flex-col items-end">
           {label(t.roi, true)}
           <div
-            className="font-bold text-[18px] leading-none mt-[3px]"
-            style={{ color: signColor(data.roi) }}
+            className="font-[640] text-[19.5px] leading-none mt-[2.5px]"
+            style={{ color: signColor(data.roi), ...BIG_NUMBER }}
             data-testid="text-roi"
           >
             {renderNumber(formatSigned(data.roi) + "%")}
@@ -294,14 +310,14 @@ export function PnlCard({ data, language = "en", theme = "dark" }: PnlCardProps)
       </div>
 
       {/* Size / Margin / Margin Ratio */}
-      <div className="grid grid-cols-[152.5px_1fr_auto] mt-[16px]">
+      <div className="grid grid-cols-[152.5px_1fr_auto] mt-[14px]">
         <div>
-          <div className="text-[12px] leading-none h-[17px] flex items-start gap-[4px] whitespace-nowrap" style={{ color: COLORS.label }}>
+          <div className="text-[12px] leading-none h-[17px] flex items-start gap-[1.5px] whitespace-nowrap" style={{ color: COLORS.label }}>
             <span className="leading-none">{t.size(data.sizeUnit.toUpperCase())}</span>
             {swapIcon}
           </div>
           <div className="text-[14.5px] leading-none mt-[2.5px]" style={{ color: COLORS.value }} data-testid="text-size">
-            {renderNumber(isZh ? formatFixed(sizeUsdt, 3) : formatPrice(data.size))}
+            {renderNumber(isZh ? formatFixed(sizeUsdt, 3) : formatPrice(data.size, sizeDecimals))}
           </div>
         </div>
         <div>
@@ -319,7 +335,7 @@ export function PnlCard({ data, language = "en", theme = "dark" }: PnlCardProps)
       </div>
 
       {/* Entry / Mark / Liq */}
-      <div className="grid grid-cols-[152.5px_1fr_auto] mt-[14px]">
+      <div className="grid grid-cols-[152.5px_1fr_auto] mt-[15px]">
         <div>
           {label(t.entryPrice, true)}
           <div className="text-[14.5px] leading-none mt-[2.5px]" style={{ color: COLORS.value }} data-testid="text-entry-price">
@@ -335,21 +351,21 @@ export function PnlCard({ data, language = "en", theme = "dark" }: PnlCardProps)
         <div className="flex flex-col items-end">
           {label(t.liqPrice, true)}
           <div className="text-[14.5px] leading-none mt-[2.5px]" style={{ color: COLORS.value }} data-testid="text-liq-price">
-            {data.liqPrice <= 0 ? dotted("--", "min-w-[22px] text-center") : renderNumber(formatPrice(data.liqPrice, liqDecimals))}
+            {data.liqPrice <= 0 ? <span className="inline-block -mb-[5px]" style={{ fontFeatureSettings: "normal", letterSpacing: "-0.4px" }}>{dotted("--", "min-w-[12px] text-center")}</span> : renderNumber(formatPrice(data.liqPrice, liqDecimals))}
           </div>
         </div>
       </div>
 
       {/* Realized PNL */}
       <div
-        className="mt-[12px] h-[33.5px] rounded-[5px] border flex items-center justify-between pl-[13px] pr-[11px] box-border"
+        className="mt-[10.5px] h-[34.75px] rounded-[5px] border flex items-center justify-between pl-[12px] pr-[11px] box-border"
         style={{ borderColor: COLORS.boxBorder }}
         data-testid="row-realized-pnl"
       >
         <span className="text-[12px] leading-none whitespace-nowrap" style={{ color: COLORS.label }}>
           {t.realizedPnl}
         </span>
-        <span className="flex items-center gap-[5px] shrink-0 whitespace-nowrap">
+        <span className="flex items-center gap-[4px] shrink-0 whitespace-nowrap">
           <span className="text-[12.5px] leading-none" style={{ color: signColor(realizedPnl) }} data-testid="text-realized-pnl">
             {renderNumber(formatFixed(realizedPnl, 2))}
           </span>
@@ -358,7 +374,7 @@ export function PnlCard({ data, language = "en", theme = "dark" }: PnlCardProps)
       </div>
 
       {/* Action buttons */}
-      <div className="grid grid-cols-3 gap-[9px] mt-[15px] h-[34px]">
+      <div className="grid grid-cols-3 gap-[9px] mt-[13.5px] h-[35px]">
         {[
           { id: "button-leverage", text: t.leverage },
           { id: "button-tpsl", text: t.tpsl },
