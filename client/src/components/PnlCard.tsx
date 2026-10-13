@@ -85,9 +85,10 @@ const LABELS = {
 };
 
 
-// PNL / ROI headline numbers: proportional digits and slightly tight tracking, as in
-// the reference app (tabular digits made "-2,18%" ~10% wider than the reference).
-const BIG_NUMBER = { fontFeatureSettings: "normal", letterSpacing: "-0.6px" } as const;
+// PNL / ROI headline numbers: tabular digits in the large-size (display) cut with
+// slightly tight tracking, measured against the reference app. Proportional digits
+// with -0.6px tracking made long values like "+15.884,62" look glued together.
+const BIG_NUMBER = { fontFeatureSettings: '"tnum"', fontVariationSettings: '"opsz" 28', letterSpacing: "-0.3px" } as const;
 
 // Side-badge letters as Inter SemiBold outlines (12.5px), pre-centred in the 17px
 // badge. Text there depends on each browser's font metrics, and the Safari/iOS export
