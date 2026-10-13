@@ -5,13 +5,16 @@ import { calcRealizedPnl } from "@shared/realizedPnl";
 
 export type PnlCardLanguage = "en" | "zh";
 
+export type PnlCardTheme = "dark" | "light";
+
 interface PnlCardProps {
   data: PnlData;
   language?: PnlCardLanguage;
+  theme?: PnlCardTheme;
 }
 
 // Sampled from a Binance app screenshot (Display P3 converted to sRGB)
-const COLORS = {
+const DARK_COLORS = {
   bg: "#212630",
   label: "#979ca8",
   value: "#ebeef4",
@@ -24,6 +27,22 @@ const COLORS = {
   tagBorder: "#444b58",
   boxBorder: "#353a46",
   button: "#333a47",
+};
+
+// Light mode, sampled from a Binance app screenshot in light mode
+const LIGHT_COLORS: typeof DARK_COLORS = {
+  bg: "#ffffff",
+  label: "#747474",
+  value: "#000000",
+  green: "#00c07c",
+  red: "#e8325c",
+  icon: "#999999",
+  chevron: "#787878",
+  dots: "#808080",
+  tagBg: "#f4f4f4",
+  tagBorder: "#f4f4f4",
+  boxBorder: "#e8e8e8",
+  button: "#f0f0f0",
 };
 
 const LABELS = {
@@ -67,11 +86,14 @@ const LABELS = {
 
 const DOT_LINE = "••••••••••••••••••••••••••••••••••••••••••••••••";
 
-export function PnlCard({ data, language = "en" }: PnlCardProps) {
+export function PnlCard({ data, language = "en", theme = "dark" }: PnlCardProps) {
   const isZh = language === "zh";
+  const isLight = theme === "light";
+  const COLORS = isLight ? LIGHT_COLORS : DARK_COLORS;
   const t = LABELS[language];
-  // English card uses the European format (1.234,56) like the reference app; Chinese uses 1,234.56
-  const locale = isZh ? "en-US" : "de-DE";
+  // Dark English card uses the European format (1.234,56) like its reference app;
+  // the light reference and the Chinese card use 1,234.56
+  const locale = isZh || isLight ? "en-US" : "de-DE";
 
   const formatFixed = (num: number, decimals: number) =>
     new Intl.NumberFormat(locale, {
@@ -186,6 +208,7 @@ export function PnlCard({ data, language = "en" }: PnlCardProps) {
       }}
       data-testid="pnl-card"
       data-language={language}
+      data-theme={theme}
     >
       {/* Header: side badge, symbol, tags, ADL bars */}
       <div className="flex items-center h-[17.5px] min-w-0">
@@ -193,7 +216,8 @@ export function PnlCard({ data, language = "en" }: PnlCardProps) {
           className="w-[17.5px] h-[17.5px] rounded-[3px] flex items-center justify-center shrink-0"
           style={{ backgroundColor: isShort ? COLORS.red : COLORS.green }}
         >
-          <span className="text-white text-[12.5px] font-semibold leading-none">{isShort ? "S" : "B"}</span>
+          {/* leading-none centres the em box, not the capital, which left S/B ~1.1px high. */}
+          <span className="text-white text-[12.5px] font-semibold leading-none translate-y-[1.125px]">{isShort ? "S" : "B"}</span>
         </div>
         <span
           className="ml-[5.5px] text-[16px] font-semibold leading-none truncate"

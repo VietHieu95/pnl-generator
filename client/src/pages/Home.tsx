@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { PnlCard, type PnlCardLanguage } from "@/components/PnlCard";
+import { PnlCard, type PnlCardLanguage, type PnlCardTheme } from "@/components/PnlCard";
 import { PnlForm } from "@/components/PnlForm";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -36,6 +36,13 @@ export default function Home() {
   const setCardLanguage = (language: PnlCardLanguage) => {
     setCardLanguageState(language);
     localStorage.setItem("pnlCardLanguage", language);
+  };
+  const [cardTheme, setCardThemeState] = useState<PnlCardTheme>(() =>
+    localStorage.getItem("pnlCardTheme") === "light" ? "light" : "dark"
+  );
+  const setCardTheme = (theme: PnlCardTheme) => {
+    setCardThemeState(theme);
+    localStorage.setItem("pnlCardTheme", theme);
   };
   // Realized PNL from the coin's real Binance fee + funding history (kept live)
   const { realized, cardData, refresh: refreshRealized } = useRealizedPnl(activeTrade);
@@ -160,6 +167,22 @@ export default function Home() {
                     </button>
                   ))}
                 </div>
+                <div className="flex items-center rounded-lg border border-white/10 bg-white/5 p-0.5">
+                  {(["dark", "light"] as const).map((theme) => (
+                    <button
+                      key={theme}
+                      type="button"
+                      onClick={() => setCardTheme(theme)}
+                      className={`h-7 px-3 rounded-md text-[10px] font-black uppercase transition-colors ${
+                        cardTheme === theme
+                          ? "bg-primary text-primary-foreground"
+                          : "text-muted-foreground hover:text-white"
+                      }`}
+                    >
+                      {theme === "dark" ? "Dark" : "Light"}
+                    </button>
+                  ))}
+                </div>
                 <Button variant="outline" size="sm" onClick={handleCopyToClipboard} className="h-8 text-[10px] uppercase px-3 border-white/10 bg-white/5">
                   <Image className="w-3 h-3 mr-1.5" />
                   Copy
@@ -176,7 +199,7 @@ export default function Home() {
                 <div className="w-full flex justify-center">
                   <div className="origin-top" style={{ transform: "scale(0.75)", transformOrigin: "top center" }}>
                     <div ref={cardRef} className="shrink-0">
-                      <PnlCard data={cardData ?? activeTrade} language={cardLanguage} />
+                      <PnlCard data={cardData ?? activeTrade} language={cardLanguage} theme={cardTheme} />
                     </div>
                   </div>
                 </div>
