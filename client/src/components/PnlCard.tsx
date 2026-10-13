@@ -88,7 +88,10 @@ const LABELS = {
 
 
 // Extra gaps (CSS px) around separators in the headline numbers, from the reference.
-const BIG_GAP = { sign: "-0.6px", dotL: "1.2px", dotR: "0.95px", commaL: "1px", commaR: "0px" };
+const BIG_GAP = {
+  plus: { marginLeft: "-1.2px", marginRight: "-0.25px" },
+  minus: { marginLeft: "-2px", marginRight: "-1px" },
+  dotL: "0.8px", dotR: "0.7px", commaL: "1.2px", commaR: "0.75px", percentL: "-0.4px", oneL: "1.4px", oneR: "2.45px" };
 
 const MARGIN_RATIO_WARN = 30; // %: green below, yellow from here (estimate, see marginRatioColor)
 const MARGIN_RATIO_DANGER = 80; // %: red above, as in Binance's web code
@@ -96,7 +99,7 @@ const MARGIN_RATIO_DANGER = 80; // %: red above, as in Binance's web code
 // PNL / ROI headline numbers: tabular digits in the large-size (display) cut with
 // slightly tight tracking, measured against the reference app. Proportional digits
 // with -0.6px tracking made long values like "+15.884,62" look glued together.
-const BIG_NUMBER = { fontFeatureSettings: '"tnum"', fontVariationSettings: '"opsz" 28', letterSpacing: "-0.3px" } as const;
+const BIG_NUMBER = { fontFeatureSettings: '"tnum"', fontVariationSettings: '"opsz" 28', letterSpacing: "-1px" } as const;
 
 // Side-badge letters as Inter SemiBold outlines (12.5px), pre-centred in the 17px
 // badge. Text there depends on each browser's font metrics, and the Safari/iOS export
@@ -166,7 +169,9 @@ export function PnlCard({ data, language = "en", theme = "dark" }: PnlCardProps)
   // Headline PNL / ROI: every separator gets the gap measured on the reference
   // (+15.884,62 / +39,92%). Plain text left "5." / "4," cramped and read as glued.
   const renderBigNumber = (text: string) => {
-    const numberFont = { fontFamily: '-apple-system, BlinkMacSystemFont, "Inter", sans-serif' };
+    // Embedded Inter on every platform, so the render server, PC and iPhone exports
+    // space the digits identically (system fonts differ in side bearings).
+    const numberFont = { fontFamily: '"Inter", sans-serif' };
     const commaFont = { fontFamily: "'IBM Plex Sans', sans-serif", fontSize: "0.85em" };
     const out: ReactNode[] = [];
     let run = "";
@@ -177,10 +182,18 @@ export function PnlCard({ data, language = "en", theme = "dark" }: PnlCardProps)
     text.split("").forEach((ch, i) => {
       if (ch === "+" || ch === "-") {
         flush(i);
-        out.push(<span key={i} style={{ ...numberFont, marginRight: BIG_GAP.sign }}>{ch}</span>);
+        out.push(<span key={i} style={{ ...numberFont, ...(ch === "+" ? BIG_GAP.plus : BIG_GAP.minus) }}>{ch}</span>);
       } else if (ch === ".") {
         flush(i);
         out.push(<span key={i} style={{ ...numberFont, marginLeft: BIG_GAP.dotL, marginRight: BIG_GAP.dotR }}>.</span>);
+      } else if (ch === "1") {
+        // Inter's tabular "1" carries a foot serif; the reference "1" is a plain stem.
+        // Use the plain glyph, padded to the tabular cell so columns still line up.
+        flush(i);
+        out.push(<span key={i} style={{ ...numberFont, fontFeatureSettings: "normal", marginLeft: BIG_GAP.oneL, marginRight: BIG_GAP.oneR }}>1</span>);
+      } else if (ch === "%") {
+        flush(i);
+        out.push(<span key={i} style={{ ...numberFont, marginLeft: BIG_GAP.percentL }}>%</span>);
       } else if (ch === ",") {
         flush(i);
         out.push(<span key={i} style={{ ...commaFont, marginLeft: BIG_GAP.commaL, marginRight: BIG_GAP.commaR }}>,</span>);
