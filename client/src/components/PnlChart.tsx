@@ -373,11 +373,20 @@ export function PnlChart({
           </text>
         );
       })}
-      <g stroke={C.icon} strokeWidth={1.1} fill="none" strokeLinecap="round" strokeLinejoin="round">
-        <rect x={L.icon.x + 0.5} y={L.icon.y + 0.5} width={L.icon.s - 1} height={L.icon.s - 1} rx={1.6} />
-        <path d={`M${L.icon.x + 3.4} ${L.icon.y + 3.4} L${L.icon.x + 7.4} ${L.icon.y + 7.4} M${L.icon.x + 7.4} ${L.icon.y + 4.4} V${L.icon.y + 7.4} H${L.icon.x + 4.4}`} />
+      {/* "exit fullscreen" icon, traced from the app at 29x29 (3px strokes): outer frame
+          open at the bottom-right where the small square sits, arrow pointing into it */}
+      <g
+        transform={`translate(${L.icon.x} ${L.icon.y}) scale(${L.icon.s / 29}) translate(-6 -8)`}
+        stroke={C.icon}
+        strokeWidth={3}
+        fill="none"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <path d="M33 21.5 V11 Q33 9 31 9 H9 Q7 9 7 11 V33 Q7 35 9 35 H18.5" />
+        <rect x={23} y={26} width={10} height={9} rx={1.6} />
+        <path d="M12.5 13.5 L19 20 M19 15 V21 H13" />
       </g>
-      <rect x={L.icon.x + 8.2} y={L.icon.y + 8.2} width={4.2} height={4.2} rx={0.6} fill="none" stroke={C.icon} strokeWidth={1.1} />
       <rect x={L.tabDivider.x} y={L.tabDivider.y0} width={0.6} height={L.tabDivider.y1 - L.tabDivider.y0} fill={C.line} />
       <path d={`M${L.caret.x0} ${L.caret.y0} H${L.caret.x1} L${(L.caret.x0 + L.caret.x1) / 2} ${L.caret.y1} Z`} fill={C.icon} />
 
