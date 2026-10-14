@@ -120,3 +120,107 @@ export function syntheticCandles(entry: number, mark: number, interval: ChartInt
   }
   return out;
 }
+
+/* ---------------------------------------------------------------------------
+ * Auto timeframe: pick the interval whose chart shows the entry best.
+ * ------------------------------------------------------------------------- */
+
+export const AUTO_CANDIDATES: ChartInterval[] = ["1m", "3m", "5m", "15m", "30m", "1h"];
+/** Candles on screen in the default chart view (lastX / pitch + 2). */
+export const VISIBLE_CANDLES = 59;
+
+type Trade = { entry: number; mark: number; side: "Long" | "Short" };
+
+/**
+ * Score how well one timeframe "sells" the entry, on the candles that would be on
+ * screen (rescaled onto the card's mark price like the chart does):
+ *  - the entry sits inside the candle range (not pinned to the edge)
+ *  - a candle actually traded through the entry price, followed by a run of candles
+ *    (the "entered here, then it moved" story)
+ *  - entry -> current price covers about two thirds of the chart height
+ */
+export function scoreInterval(candles: Candle[], t: Trade): number {
+  const vis = candles.slice(-VISIBLE_CANDLES);
+  if (vis.length < 10 || !(t.entry > 0) || !(t.mark > 0)) return -Infinity;
+  const rawClose = vis[vis.length - 1].c;
+  const k = Math.abs(t.mark / rawClose - 1) > 0.002 ? t.mark / rawClose : 1;
+  const hi = Math.max(...vis.map((c) => c.h)) * k;
+  const lo = Math.min(...vis.map((c) => c.l)) * k;
+  const close = t.mark;
+  const cHi = Math.max(hi, close);
+  const cLo = Math.min(lo, close);
+  const candleSpan = cHi - cLo || close * 0.002;
+  if (t.entry > cHi + candleSpan || t.entry < cLo - candleSpan) return -1; // would be pinned
+  const span = Math.max(cHi, t.entry) - Math.min(cLo, t.entry);
+  let score = 0;
+  // entry inside the candles (best) or just outside
+  score += t.entry <= cHi && t.entry >= cLo ? 1 : 0.3;
+  // entry -> now as a share of the chart height, best around 0.65
+  const frac = Math.abs(close - t.entry) / span;
+  score += Math.max(0, 1 - Math.abs(frac - 0.65) * 2);
+  // most recent candle that traded through the entry, and how long the move since is
+  let lastTouch = -1;
+  vis.forEach((c, i) => {
+    if (c.l * k <= t.entry && c.h * k >= t.entry) lastTouch = i;
+  });
+  if (lastTouch >= 0) {
+    const run = vis.length - 1 - lastTouch;
+    score += run >= 10 && run <= 50 ? 0.8 : run > 50 ? 0.5 : 0.3;
+  }
+  // the move should go the position's way (a winning card looks best)
+  const dir = t.side === "Short" ? -1 : 1;
+  if ((close - t.entry) * dir > 0) score += 0.2;
+  return score;
+}
+
+/**
+ * Loads every candidate timeframe and returns the best one with its candles, so a
+ * one-shot render (the bots) does not have to fetch twice.
+ */
+export function useAutoInterval(symbol: string, t: Trade | null, enabled: boolean) {
+  const [state, setState] = useState<{ interval: ChartInterval; candles: Candle[]; priceDecimals: number; ready: boolean }>({
+    interval: "1m", candles: [], priceDecimals: 2, ready: false,
+  });
+  const sym = symbol.trim().toUpperCase().replace(/[^A-Z0-9]/g, "");
+  const key = t ? `${t.entry}|${t.side}|${t.mark.toPrecision(3)}` : "";
+
+  useEffect(() => {
+    if (!enabled || !sym || !t) return;
+    let stopped = false;
+    setState((s) => ({ ...s, ready: false }));
+    (async () => {
+      const results = await Promise.all(
+        AUTO_CANDIDATES.map(async (iv) => {
+          try {
+            const res = await fetch(`${FAPI}?symbol=${sym}&interval=${iv}&limit=${VISIBLE_CANDLES + 10}`);
+            if (!res.ok) return null;
+            const rows = (await res.json()) as string[][];
+            let dec = 0;
+            const candles = rows.map((r) => {
+              dec = Math.max(dec, decimalsOf(r[1]), decimalsOf(r[4]));
+              return { t: Number(r[0]), o: Number(r[1]), h: Number(r[2]), l: Number(r[3]), c: Number(r[4]) };
+            });
+            return { iv, candles, dec: dec || 2, score: scoreInterval(candles, t) };
+          } catch {
+            return null;
+          }
+        })
+      );
+      if (stopped) return;
+      const ok = results.filter((r): r is NonNullable<typeof r> => !!r);
+      // highest score wins; ties go to the shorter timeframe (fresher action)
+      const best = ok.reduce<(typeof ok)[number] | null>((b, r) => (!b || r.score > b.score + 1e-9 ? r : b), null);
+      setState(
+        best
+          ? { interval: best.iv, candles: best.candles, priceDecimals: best.dec, ready: true }
+          : { interval: "1m", candles: [], priceDecimals: 2, ready: true }
+      );
+    })();
+    return () => {
+      stopped = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sym, key, enabled]);
+
+  return state;
+}

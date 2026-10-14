@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { PnlCard, type PnlCardLanguage, type PnlCardTheme } from "@/components/PnlCard";
 import { PnlChart } from "@/components/PnlChart";
-import { parseInterval, syntheticCandles, useKlines, type ChartInterval } from "@/hooks/useKlines";
+import { parseInterval, syntheticCandles, useAutoInterval, useKlines, type ChartInterval } from "@/hooks/useKlines";
 import { PnlForm } from "@/components/PnlForm";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -57,8 +57,24 @@ export default function Home() {
     setChartIntervalState(interval);
     localStorage.setItem("pnlChartInterval", interval);
   };
+  // Auto timeframe: the interval that shows the entry best (clicking a tab turns it off).
+  const [autoTf, setAutoTfState] = useState<boolean>(() => localStorage.getItem("pnlChartAuto") !== "0");
+  const setAutoTf = (on: boolean) => {
+    setAutoTfState(on);
+    localStorage.setItem("pnlChartAuto", on ? "1" : "0");
+  };
+  const autoPick = useAutoInterval(
+    showChart ? activeTrade?.symbol || "" : "",
+    activeTrade ? { entry: activeTrade.entryPrice, mark: activeTrade.markPrice, side: activeTrade.positionType } : null,
+    showChart && autoTf
+  );
+  const effectiveInterval: ChartInterval = autoTf && autoPick.ready ? autoPick.interval : chartInterval;
+  const pickInterval = (interval: ChartInterval) => {
+    setAutoTf(false);
+    setChartInterval(interval);
+  };
   // 500 candles of history so the chart can be dragged back in time
-  const klines = useKlines(showChart ? activeTrade?.symbol || "" : "", chartInterval, showChart, 500);
+  const klines = useKlines(showChart ? activeTrade?.symbol || "" : "", effectiveInterval, showChart, 500);
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
     if (!showChart) return;
@@ -217,6 +233,21 @@ export default function Home() {
                 >
                   Chart
                 </button>
+                {showChart && (
+                  <button
+                    type="button"
+                    onClick={() => setAutoTf(!autoTf)}
+                    title="Tự chọn khung giờ làm điểm entry trông đẹp nhất"
+                    className={`h-8 px-3 rounded-lg border text-[10px] font-black uppercase transition-colors ${
+                      autoTf
+                        ? "bg-primary text-primary-foreground border-primary"
+                        : "border-white/10 bg-white/5 text-muted-foreground hover:text-white"
+                    }`}
+                    data-testid="button-toggle-auto-tf"
+                  >
+                    Auto
+                  </button>
+                )}
                 <Button variant="outline" size="sm" onClick={handleCopyToClipboard} className="h-8 text-[10px] uppercase px-3 border-white/10 bg-white/5">
                   <Image className="w-3 h-3 mr-1.5" />
                   Copy
@@ -240,14 +271,14 @@ export default function Home() {
                           candles={
                             klines.candles.length
                               ? klines.candles
-                              : syntheticCandles((cardData ?? activeTrade).entryPrice, (cardData ?? activeTrade).markPrice, chartInterval, now)
+                              : syntheticCandles((cardData ?? activeTrade).entryPrice, (cardData ?? activeTrade).markPrice, effectiveInterval, now)
                           }
-                          interval={chartInterval}
+                          interval={effectiveInterval}
                           priceDecimals={klines.candles.length ? klines.priceDecimals : 2}
                           now={now}
                           theme={cardTheme}
                           language={cardLanguage}
-                          onIntervalChange={setChartInterval}
+                          onIntervalChange={pickInterval}
                           interactive
                         />
                       )}

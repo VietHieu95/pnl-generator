@@ -3,7 +3,7 @@ import { useSearch } from "wouter";
 import { PnlData, pnlDataSchema } from "@shared/schema";
 import { PnlCard, type PnlCardLanguage, type PnlCardTheme } from "@/components/PnlCard";
 import { PnlChart } from "@/components/PnlChart";
-import { parseInterval, syntheticCandles, useKlines } from "@/hooks/useKlines";
+import { parseInterval, syntheticCandles, useAutoInterval, useKlines } from "@/hooks/useKlines";
 
 export default function IsolatedCard() {
     // Use window.location.search for more reliable parameter detection in all environments
@@ -17,9 +17,24 @@ export default function IsolatedCard() {
 
     // ?chart=1 adds the Binance-style candlestick panel under the card (real klines).
     const withChart = queryParams.get("chart") === "1";
-    const chartInterval = parseInterval(queryParams.get("interval"));
+    // interval=auto picks the timeframe that shows the entry best (see scoreInterval).
+    const autoInterval = queryParams.get("interval") === "auto";
+    const fixedInterval = parseInterval(queryParams.get("interval"));
     const timeZone = queryParams.get("tz") || "Asia/Ho_Chi_Minh";
-    const klines = useKlines(withChart ? queryParams.get("symbol") || "" : "", chartInterval, false);
+    const chartSymbol = withChart ? queryParams.get("symbol") || "" : "";
+    const tradeForAuto = withChart && autoInterval
+        ? {
+            entry: Number(queryParams.get("entryPrice")),
+            mark: Number(queryParams.get("markPrice")),
+            side: (queryParams.get("positionType") === "Short" ? "Short" : "Long") as "Long" | "Short",
+        }
+        : null;
+    const auto = useAutoInterval(chartSymbol, tradeForAuto, autoInterval);
+    const fixed = useKlines(autoInterval ? "" : chartSymbol, fixedInterval, false);
+    const klines = autoInterval
+        ? { candles: auto.candles, priceDecimals: auto.priceDecimals, ready: auto.ready }
+        : fixed;
+    const chartInterval = autoInterval ? auto.interval : fixedInterval;
 
     const { data: apiData, isLoading, error } = useQuery<PnlData>({
         queryKey: ["/api/pnl"],
