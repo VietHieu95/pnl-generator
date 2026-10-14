@@ -57,7 +57,8 @@ export default function Home() {
     setChartIntervalState(interval);
     localStorage.setItem("pnlChartInterval", interval);
   };
-  const klines = useKlines(showChart ? activeTrade?.symbol || "" : "", chartInterval, showChart);
+  // 500 candles of history so the chart can be dragged back in time
+  const klines = useKlines(showChart ? activeTrade?.symbol || "" : "", chartInterval, showChart, 500);
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
     if (!showChart) return;
@@ -247,6 +248,7 @@ export default function Home() {
                           theme={cardTheme}
                           language={cardLanguage}
                           onIntervalChange={setChartInterval}
+                          interactive
                         />
                       )}
                     </div>

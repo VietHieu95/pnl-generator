@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import type { PnlData } from "@shared/schema";
 import { getCardColors, getCardLocale, type PnlCardLanguage, type PnlCardTheme } from "@/components/PnlCard";
 import { CHART_INTERVALS, intervalMs, type Candle, type ChartInterval } from "@/hooks/useKlines";
@@ -68,6 +68,10 @@ function textWidth(s: string, size: number) {
   return em * size;
 }
 
+type View = { offset: number; zoom: number; range: { top: number; bottom: number } | null };
+const DEFAULT_VIEW: View = { offset: 0, zoom: 1, range: null };
+const clamp = (v: number, lo: number, hi: number) => Math.min(Math.max(v, lo), hi);
+
 export interface PnlChartProps {
   data: PnlData;
   candles: Candle[];
@@ -78,6 +82,8 @@ export interface PnlChartProps {
   language?: PnlCardLanguage;
   timeZone?: string;
   onIntervalChange?: (interval: ChartInterval) => void;
+  /** Drag to pan, drag the price axis to rescale, wheel / pinch to zoom, double-click to reset. */
+  interactive?: boolean;
 }
 
 export function PnlChart({
@@ -90,7 +96,89 @@ export function PnlChart({
   language = "en",
   timeZone,
   onIntervalChange,
+  interactive = false,
 }: PnlChartProps) {
+  const [view, setView] = useState<View>(DEFAULT_VIEW);
+  const svgRef = useRef<SVGSVGElement>(null);
+  const scaleRef = useRef({ top: 1, bottom: 0, pitch: L.pitch, N: 0 });
+  const axisLeftRef = useRef(L.axisLeft);
+  const pointers = useRef(new Map<number, { x: number; y: number }>());
+  const drag = useRef<
+    | { mode: "pan" | "axis"; x: number; y: number; offset: number; top: number; bottom: number; manual: boolean }
+    | { mode: "pinch"; dist: number; zoom: number }
+    | null
+  >(null);
+  const clipId = `pnl-chart-clip-${useId().replace(/:/g, "")}`;
+
+  // A new coin or timeframe starts back at the live edge with auto scale.
+  useEffect(() => setView(DEFAULT_VIEW), [data.symbol, interval]);
+
+  const toSvg = (e: { clientX: number; clientY: number }) => {
+    const r = svgRef.current!.getBoundingClientRect();
+    const k = W / r.width;
+    return { x: (e.clientX - r.left) * k, y: (e.clientY - r.top) * k + CARD_H };
+  };
+  const onPointerDown = (e: React.PointerEvent<SVGSVGElement>) => {
+    if (!interactive) return;
+    const p = toSvg(e);
+    if (p.y < L.plotTop) return; // tabs stay clickable
+    e.currentTarget.setPointerCapture(e.pointerId);
+    pointers.current.set(e.pointerId, p);
+    if (pointers.current.size === 2) {
+      const [a, b] = Array.from(pointers.current.values());
+      drag.current = { mode: "pinch", dist: Math.hypot(a.x - b.x, a.y - b.y) || 1, zoom: view.zoom };
+      return;
+    }
+    const { top, bottom } = scaleRef.current;
+    drag.current = {
+      mode: p.x >= axisLeftRef.current ? "axis" : "pan",
+      x: p.x, y: p.y, offset: view.offset, top, bottom, manual: !!view.range,
+    };
+  };
+  const onPointerMove = (e: React.PointerEvent<SVGSVGElement>) => {
+    const d = drag.current;
+    if (!d || !pointers.current.has(e.pointerId)) return;
+    const p = toSvg(e);
+    pointers.current.set(e.pointerId, p);
+    const { pitch, N } = scaleRef.current;
+    if (d.mode === "pinch") {
+      if (pointers.current.size < 2) return;
+      const [a, b] = Array.from(pointers.current.values());
+      const zoom = clamp((d.zoom * Math.hypot(a.x - b.x, a.y - b.y)) / d.dist, 0.35, 4);
+      setView((v) => ({ ...v, zoom }));
+    } else if (d.mode === "axis") {
+      // Drag down on the price axis = wider range (zoom out), up = zoom in.
+      const factor = Math.exp((p.y - d.y) * 0.012);
+      const mid = (d.top + d.bottom) / 2;
+      const half = ((d.top - d.bottom) / 2) * factor;
+      setView((v) => ({ ...v, range: { top: mid + half, bottom: mid - half } }));
+    } else {
+      const offset = clamp(d.offset + (p.x - d.x) / pitch, -Math.floor((L.axisLeft - L.lastX) / pitch) + 1, Math.max(0, N - 8));
+      const shift = d.manual ? ((p.y - d.y) / (L.lowY - L.highY)) * (d.top - d.bottom) : 0;
+      setView((v) => ({ ...v, offset, range: d.manual ? { top: d.top + shift, bottom: d.bottom + shift } : v.range }));
+    }
+  };
+  const onPointerUp = (e: React.PointerEvent<SVGSVGElement>) => {
+    pointers.current.delete(e.pointerId);
+    if (pointers.current.size === 0) drag.current = null;
+    else if (drag.current?.mode === "pinch") {
+      const [p] = Array.from(pointers.current.values());
+      const { top, bottom } = scaleRef.current;
+      drag.current = { mode: "pan", x: p.x, y: p.y, offset: view.offset, top, bottom, manual: !!view.range };
+    }
+  };
+  // Wheel / trackpad zoom needs a non-passive listener to stop the page scrolling.
+  useEffect(() => {
+    const el = svgRef.current;
+    if (!el || !interactive) return;
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      setView((v) => ({ ...v, zoom: clamp(v.zoom * Math.exp(-e.deltaY * 0.0015), 0.35, 4) }));
+    };
+    el.addEventListener("wheel", onWheel, { passive: false });
+    return () => el.removeEventListener("wheel", onWheel);
+  }, [interactive]);
+
   const card = getCardColors(theme);
   const C = chartColors(theme);
   const locale = getCardLocale(theme, language);
@@ -109,17 +197,28 @@ export function PnlChart({
     [timeZone]
   );
 
-  // Visible candles: the last one sits at lastX, older ones step left by pitch.
-  const visibleCount = Math.floor(L.lastX / L.pitch) + 2;
+  // ---- view: pan / zoom / manual price scale (interactive mode only) ----
+  const N = candles.length;
+  const pitch = L.pitch * view.zoom;
+  const bodyW = Math.min(Math.max(L.body * view.zoom, 1), pitch * 0.82);
   // When the live market is far from the card's mark price (hand-made numbers, or a
   // stale ticker) rescale the candles so the last close lands on the card's mark:
   // the shape stays real and the chart agrees with the card above it.
-  const rawVisible = candles.slice(-visibleCount);
-  const rawClose = rawVisible[rawVisible.length - 1]?.c;
+  const rawClose = candles[N - 1]?.c;
   const anchor = rawClose && data.markPrice > 0 && Math.abs(data.markPrice / rawClose - 1) > 0.002 ? data.markPrice / rawClose : 1;
-  const visible = anchor === 1 ? rawVisible : rawVisible.map((k) => ({ ...k, o: k.o * anchor, h: k.h * anchor, l: k.l * anchor, c: k.c * anchor }));
-  const last = visible[visible.length - 1];
-  const xOf = (i: number) => L.lastX - (visible.length - 1 - i) * L.pitch;
+  const all = useMemo(
+    () => (anchor === 1 ? candles : candles.map((k) => ({ ...k, o: k.o * anchor, h: k.h * anchor, l: k.l * anchor, c: k.c * anchor }))),
+    [candles, anchor]
+  );
+  const last = all[N - 1];
+  // Candle index that sits at lastX (fractional while panning); offset 0 = live edge.
+  const rightIdx = N - 1 - view.offset;
+  const xOf = (i: number) => L.lastX - (rightIdx - i) * pitch;
+  const firstIdx = Math.max(0, Math.floor(rightIdx - (L.lastX + pitch) / pitch));
+  const lastIdx = Math.min(N - 1, Math.ceil(rightIdx + (L.axisLeft - L.lastX) / pitch));
+  const visIdx: number[] = [];
+  for (let i = firstIdx; i <= lastIdx; i++) visIdx.push(i);
+  const lastVisible = lastIdx === N - 1;
 
   const entry = data.entryPrice;
   const close = last ? last.c : data.markPrice;
@@ -127,27 +226,37 @@ export function PnlChart({
   let lo = Infinity;
   let hiIdx = -1;
   let loIdx = -1;
-  visible.forEach((k, i) => {
+  visIdx.forEach((i) => {
+    const k = all[i];
     if (k.h > hi) { hi = k.h; hiIdx = i; }
     if (k.l < lo) { lo = k.l; loIdx = i; }
   });
-  // The entry joins the price scale when it is near the candles; far away it would
-  // squash them flat, so it is pinned to the chart edge instead (label keeps the price).
-  const candleSpan = Math.max(hi, close) - Math.min(lo, close) || Math.abs(close) * 0.002 || 1;
-  const entryFar = entry > Math.max(hi, close) + candleSpan || entry < Math.min(lo, close) - candleSpan;
-  const top = Math.max(hi, close, entryFar ? -Infinity : entry);
-  const bottom = Math.min(lo, close, entryFar ? Infinity : entry);
+  if (hiIdx < 0) { hi = close; lo = close; }
+  // Auto scale: visible candles (+ the live price when its candle is on screen). The
+  // entry joins when it is near; far away it would squash the candles, so it is pinned.
+  const withClose = lastVisible || !visIdx.length;
+  const cHi = withClose ? Math.max(hi, close) : hi;
+  const cLo = withClose ? Math.min(lo, close) : lo;
+  const candleSpan = cHi - cLo || Math.abs(close) * 0.002 || 1;
+  const entryFar = entry > cHi + candleSpan || entry < cLo - candleSpan;
+  const autoTop = Math.max(cHi, entryFar ? -Infinity : entry);
+  const autoBottom = Math.min(cLo, entryFar ? Infinity : entry);
+  const top = view.range ? view.range.top : autoTop;
+  const bottom = view.range ? view.range.bottom : autoBottom;
   const span = top - bottom || Math.abs(top) * 0.001 || 1;
   const yOf = (p: number) => L.highY + ((top - p) / span) * (L.lowY - L.highY);
   const priceAt = (y: number) => top - ((y - L.highY) / (L.lowY - L.highY)) * span;
+  scaleRef.current = { top, bottom, pitch, N };
 
   // Axis area: as wide as the reference (76px) unless a long price needs more room.
   const axisLabelSample = fmt.format(Math.max(Math.abs(top), Math.abs(bottom)));
   const axisLeft = Math.min(L.axisLeft, L.axisTextRight - textWidth(axisLabelSample, FONT.box) - 7);
   const axisW = W - axisLeft;
+  axisLeftRef.current = axisLeft;
 
-  const entryY = entryFar ? (entry > top ? L.highY - 2 : L.lowY + 2) : yOf(entry);
-  const closeY = yOf(close);
+  const clampY = (y: number, lo_: number, hi_: number) => Math.min(Math.max(y, lo_), hi_);
+  const entryY = clampY(yOf(entry), L.plotTop + 11, L.plotBottom - 11);
+  const closeY = clampY(yOf(close), L.plotTop + 11, L.plotBottom - 27);
   const centre = (y: number, size: number) => y + (size * CAP) / 2;
 
   const sizeText = (() => {
@@ -173,11 +282,15 @@ export function PnlChart({
     return hh > 0 ? `${p(hh)}:${p(mm)}:${p(ss)}` : `${p(mm)}:${p(ss)}`;
   })();
 
+  // Time grid: one line every ~162px of candles, phase kept to the reference layout.
+  const gridEvery = Math.max(1, Math.round((L.vgridStep * L.pitch) / pitch));
   const timeLines: { x: number; label: string }[] = [];
-  for (let back = L.vgridOffset; back < visible.length; back += L.vgridStep) {
-    const i = visible.length - 1 - back;
-    timeLines.push({ x: xOf(i), label: timeFmt.format(new Date(visible[i].t)).replace(",", "") });
-  }
+  visIdx.forEach((i) => {
+    const back = N - 1 - L.vgridOffset - i;
+    const x = xOf(i);
+    if (((back % gridEvery) + gridEvery) % gridEvery === 0 && x >= -60 && x <= axisLeft - 20)
+      timeLines.push({ x, label: timeFmt.format(new Date(all[i].t)).replace(",", "") });
+  });
 
   const marker = (idx: number, price: number, y: number, key: string) => {
     if (idx < 0) return null;
@@ -205,12 +318,26 @@ export function PnlChart({
 
   return (
     <svg
+      ref={svgRef}
       width={W}
       height={CHART_H}
       viewBox={`0 ${CARD_H} ${W} ${CHART_H}`}
-      style={{ display: "block", backgroundColor: C.bg, fontFamily: '"Inter", sans-serif', fontFeatureSettings: '"tnum"' }}
+      style={{
+        display: "block", backgroundColor: C.bg, fontFamily: '"Inter", sans-serif', fontFeatureSettings: '"tnum"',
+        ...(interactive ? { touchAction: "none", userSelect: "none", cursor: drag.current ? "grabbing" : "crosshair" } : {}),
+      }}
       data-testid="pnl-chart"
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={onPointerUp}
+      onPointerCancel={onPointerUp}
+      onDoubleClick={interactive ? () => setView(DEFAULT_VIEW) : undefined}
     >
+      <defs>
+        <clipPath id={clipId}>
+          <rect x={0} y={L.plotTop} width={axisLeft} height={L.plotBottom - L.plotTop} />
+        </clipPath>
+      </defs>
       <rect x={0} y={CARD_H} width={W} height={CHART_H} fill={C.bg} />
 
       {/* separators, drag handle, timeframe tabs */}
@@ -258,10 +385,11 @@ export function PnlChart({
         <text x={19.5} y={5.5} fontSize={15.2} fontWeight={700} letterSpacing={1.1}>BINANCE</text>
       </g>
 
+      <g clipPath={`url(#${clipId})`}>
       {/* candles */}
-      {visible.map((k, i) => {
+      {visIdx.map((i) => {
+        const k = all[i];
         const x = xOf(i);
-        if (x < -L.pitch) return null;
         const up = k.c >= k.o;
         const col = up ? card.sideGreen : card.sideRed;
         const yo = yOf(k.o);
@@ -271,10 +399,12 @@ export function PnlChart({
         return (
           <g key={k.t}>
             <rect x={x - L.wick / 2} y={yOf(k.h)} width={L.wick} height={Math.max(yOf(k.l) - yOf(k.h), 0.75)} fill={col} />
-            <rect x={x - L.body / 2} y={bodyTop} width={L.body} height={bodyH} fill={col} />
+            <rect x={x - bodyW / 2} y={bodyTop} width={bodyW} height={bodyH} fill={col} />
           </g>
         );
       })}
+
+      </g>
 
       {/* axis price labels */}
       {L.gridY.map((y) => (
@@ -291,13 +421,15 @@ export function PnlChart({
       ))}
 
       {/* high / low markers */}
-      {marker(hiIdx, hi, yOf(hi), "hi")}
-      {marker(loIdx, lo, yOf(lo), "lo")}
+      <g clipPath={`url(#${clipId})`}>
+        {marker(hiIdx, hi, yOf(hi), "hi")}
+        {marker(loIdx, lo, yOf(lo), "lo")}
+      </g>
 
       {/* current price: dotted line + box with countdown */}
       {last && (
         <g>
-          <line x1={xOf(visible.length - 1) + L.body / 2 + 0.6} x2={axisLeft} y1={closeY} y2={closeY} stroke={C.text} strokeWidth={0.75} strokeDasharray="2.6 1.75" />
+          <line x1={lastVisible ? xOf(N - 1) + bodyW / 2 + 0.6 : 0} x2={axisLeft} y1={closeY} y2={closeY} stroke={C.text} strokeWidth={0.75} strokeDasharray="2.6 1.75" />
           <rect x={axisLeft + 2.05} y={closeY - 11} width={axisW - 3.25} height={37.2} rx={4.2} fill={C.boxBg} fillOpacity={0.82} stroke={C.text} strokeWidth={0.75} />
           <text x={L.axisTextRight} y={centre(closeY, FONT.box)} textAnchor="end" fontSize={FONT.box} fontWeight={500} fill={C.text}>
             {fmt.format(close)}

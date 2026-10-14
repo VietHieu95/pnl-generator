@@ -22,7 +22,6 @@ export function parseInterval(value: string | null | undefined): ChartInterval {
 }
 
 const FAPI = "https://fapi.binance.com/fapi/v1/klines";
-const LIMIT = 120;
 
 const decimalsOf = (s: string) => (s.includes(".") ? s.split(".")[1].length : 0);
 
@@ -32,7 +31,7 @@ const decimalsOf = (s: string) => (s.includes(".") ? s.split(".")[1].length : 0)
  * `priceDecimals` comes from the raw price strings, which Binance pads to the
  * symbol's price precision, so axis labels match the exchange (0.0258080).
  */
-export function useKlines(symbol: string, interval: ChartInterval, live: boolean) {
+export function useKlines(symbol: string, interval: ChartInterval, live: boolean, limit = 120) {
   const [state, setState] = useState<{
     candles: Candle[];
     priceDecimals: number;
@@ -50,7 +49,7 @@ export function useKlines(symbol: string, interval: ChartInterval, live: boolean
 
     const load = async () => {
       try {
-        const res = await fetch(`${FAPI}?symbol=${sym}&interval=${interval}&limit=${LIMIT}`);
+        const res = await fetch(`${FAPI}?symbol=${sym}&interval=${interval}&limit=${limit}`);
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const rows = (await res.json()) as string[][];
         if (stopped) return;
@@ -77,7 +76,7 @@ export function useKlines(symbol: string, interval: ChartInterval, live: boolean
             if (!s.candles.length) return s;
             const last = s.candles[s.candles.length - 1];
             if (next.t === last.t) return { ...s, candles: [...s.candles.slice(0, -1), next] };
-            if (next.t > last.t) return { ...s, candles: [...s.candles.slice(-(LIMIT - 1)), next] };
+            if (next.t > last.t) return { ...s, candles: [...s.candles.slice(-(limit - 1)), next] };
             return s;
           });
         } catch {
@@ -90,7 +89,7 @@ export function useKlines(symbol: string, interval: ChartInterval, live: boolean
       stopped = true;
       ws?.close();
     };
-  }, [sym, interval, live]);
+  }, [sym, interval, live, limit]);
 
   return state;
 }
