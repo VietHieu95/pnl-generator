@@ -63,8 +63,10 @@ export function useBinanceTicker(
     const pollTimer = window.setInterval(fetchPrices, PRICE_POLL_MS);
 
     const streams = symbols.map((s) => `${s.toLowerCase()}@ticker`).join("/");
+    // Binance moved USDⓈ-M market streams under /market (2026): the old /stream path
+    // still accepts the connection but never sends a frame.
     const ws = new WebSocket(
-      `wss://fstream.binance.com/stream?streams=${streams}`
+      `wss://fstream.binance.com/market/stream?streams=${streams}`
     );
 
     ws.onmessage = (event) => {

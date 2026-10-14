@@ -66,7 +66,8 @@ export function useKlines(symbol: string, interval: ChartInterval, live: boolean
     void load();
 
     if (live) {
-      ws = new WebSocket(`wss://fstream.binance.com/ws/${sym.toLowerCase()}@kline_${interval}`);
+      // USDⓈ-M market streams live under /market now; the old /ws path stays silent.
+      ws = new WebSocket(`wss://fstream.binance.com/market/ws/${sym.toLowerCase()}@kline_${interval}`);
       ws.onmessage = (ev) => {
         try {
           const k = JSON.parse(ev.data)?.k;

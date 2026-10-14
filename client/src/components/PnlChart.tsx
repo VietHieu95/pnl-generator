@@ -102,6 +102,7 @@ export function PnlChart({
   const svgRef = useRef<SVGSVGElement>(null);
   const scaleRef = useRef({ top: 1, bottom: 0, pitch: L.pitch, N: 0 });
   const axisLeftRef = useRef(L.axisLeft);
+  const anchorRef = useRef<{ key: string; ratio: number } | null>(null);
   const pointers = useRef(new Map<number, { x: number; y: number }>());
   const drag = useRef<
     | { mode: "pan" | "axis"; x: number; y: number; offset: number; top: number; bottom: number; manual: boolean }
@@ -204,8 +205,17 @@ export function PnlChart({
   // When the live market is far from the card's mark price (hand-made numbers, or a
   // stale ticker) rescale the candles so the last close lands on the card's mark:
   // the shape stays real and the chart agrees with the card above it.
+  // The ratio is fixed once per coin / timeframe / mark price, so live ticks still move
+  // the last candle (re-deriving it every tick pinned the close to the card's mark).
   const rawClose = candles[N - 1]?.c;
-  const anchor = rawClose && data.markPrice > 0 && Math.abs(data.markPrice / rawClose - 1) > 0.002 ? data.markPrice / rawClose : 1;
+  const anchorKey = `${data.symbol}|${interval}|${data.markPrice}`;
+  if (rawClose && anchorRef.current?.key !== anchorKey) {
+    anchorRef.current = {
+      key: anchorKey,
+      ratio: data.markPrice > 0 && Math.abs(data.markPrice / rawClose - 1) > 0.002 ? data.markPrice / rawClose : 1,
+    };
+  }
+  const anchor = anchorRef.current?.key === anchorKey ? anchorRef.current.ratio : 1;
   const all = useMemo(
     () => (anchor === 1 ? candles : candles.map((k) => ({ ...k, o: k.o * anchor, h: k.h * anchor, l: k.l * anchor, c: k.c * anchor }))),
     [candles, anchor]
