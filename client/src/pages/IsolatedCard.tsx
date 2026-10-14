@@ -10,7 +10,8 @@ export default function IsolatedCard() {
     // Check if we have at least 'symbol' to consider it a stateless request
     const hasParams = queryParams.has("symbol");
     const cardLanguage: PnlCardLanguage = queryParams.get("lang") === "zh" ? "zh" : "en";
-    const cardTheme: PnlCardTheme = queryParams.get("theme") === "light" ? "light" : "dark";
+    const themeParam = queryParams.get("theme");
+    const cardTheme: PnlCardTheme = themeParam === "light" || themeParam === "black" ? themeParam : "dark";
 
     const { data: apiData, isLoading, error } = useQuery<PnlData>({
         queryKey: ["/api/pnl"],

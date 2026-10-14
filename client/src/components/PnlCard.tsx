@@ -5,7 +5,7 @@ import { calcRealizedPnl } from "@shared/realizedPnl";
 
 export type PnlCardLanguage = "en" | "zh";
 
-export type PnlCardTheme = "dark" | "light";
+export type PnlCardTheme = "dark" | "light" | "black";
 
 interface PnlCardProps {
   data: PnlData;
@@ -54,6 +54,26 @@ const LIGHT_COLORS: typeof DARK_COLORS = {
   sideGreen: "#02bf7f",
   sideRed: "#f6465d",
   labelWeight: 370,
+};
+
+// Black (OLED) mode, sampled from a pure-black app screenshot (SKRUSDT, 12,013.20).
+const BLACK_COLORS: typeof DARK_COLORS = {
+  bg: "#000000",
+  label: "#a2a2a2",
+  value: "#ffffff",
+  green: "#00a66a",
+  red: "#f53750",
+  yellow: "#f0b90b",
+  icon: "#898989",
+  chevron: "#898989",
+  dots: "#848484",
+  tagBg: "#222222",
+  tagBorder: "#363636",
+  boxBorder: "#2a2a2a",
+  button: "#1f1f1f",
+  sideGreen: "#00a66a",
+  sideRed: "#f53750",
+  labelWeight: 400,
 };
 
 const LABELS = {
@@ -121,11 +141,11 @@ const SIDE_GLYPH = {
 export function PnlCard({ data, language = "en", theme = "dark" }: PnlCardProps) {
   const isZh = language === "zh";
   const isLight = theme === "light";
-  const COLORS = isLight ? LIGHT_COLORS : DARK_COLORS;
+  const COLORS = theme === "black" ? BLACK_COLORS : isLight ? LIGHT_COLORS : DARK_COLORS;
   const t = LABELS[language];
   // Dark English card uses the European format (1.234,56) like its reference app;
   // the light reference and the Chinese card use 1,234.56
-  const locale = isZh || isLight ? "en-US" : "de-DE";
+  const locale = isZh || theme !== "dark" ? "en-US" : "de-DE";
 
   const formatFixed = (num: number, decimals: number) =>
     new Intl.NumberFormat(locale, {

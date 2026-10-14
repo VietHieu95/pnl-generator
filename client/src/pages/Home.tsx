@@ -38,7 +38,7 @@ export default function Home() {
     localStorage.setItem("pnlCardLanguage", language);
   };
   const [cardTheme, setCardThemeState] = useState<PnlCardTheme>(() =>
-    localStorage.getItem("pnlCardTheme") === "light" ? "light" : "dark"
+    (["light", "black"] as const).find((t) => t === localStorage.getItem("pnlCardTheme")) ?? "dark"
   );
   const setCardTheme = (theme: PnlCardTheme) => {
     setCardThemeState(theme);
@@ -168,7 +168,7 @@ export default function Home() {
                   ))}
                 </div>
                 <div className="flex items-center rounded-lg border border-white/10 bg-white/5 p-0.5">
-                  {(["dark", "light"] as const).map((theme) => (
+                  {(["dark", "light", "black"] as const).map((theme) => (
                     <button
                       key={theme}
                       type="button"
@@ -179,7 +179,7 @@ export default function Home() {
                           : "text-muted-foreground hover:text-white"
                       }`}
                     >
-                      {theme === "dark" ? "Dark" : "Light"}
+                      {theme === "dark" ? "Dark" : theme === "light" ? "Light" : "Black"}
                     </button>
                   ))}
                 </div>
