@@ -1,5 +1,7 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { PnlCard, type PnlCardLanguage, type PnlCardTheme } from "@/components/PnlCard";
+import { PnlChart } from "@/components/PnlChart";
+import { parseInterval, syntheticCandles, useKlines, type ChartInterval } from "@/hooks/useKlines";
 import { PnlForm } from "@/components/PnlForm";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -44,6 +46,25 @@ export default function Home() {
     setCardThemeState(theme);
     localStorage.setItem("pnlCardTheme", theme);
   };
+  // Binance-style candlestick chart under the card: live klines, ticking countdown.
+  const [showChart, setShowChartState] = useState<boolean>(() => localStorage.getItem("pnlShowChart") === "1");
+  const setShowChart = (on: boolean) => {
+    setShowChartState(on);
+    localStorage.setItem("pnlShowChart", on ? "1" : "0");
+  };
+  const [chartInterval, setChartIntervalState] = useState<ChartInterval>(() => parseInterval(localStorage.getItem("pnlChartInterval")));
+  const setChartInterval = (interval: ChartInterval) => {
+    setChartIntervalState(interval);
+    localStorage.setItem("pnlChartInterval", interval);
+  };
+  const klines = useKlines(showChart ? activeTrade?.symbol || "" : "", chartInterval, showChart);
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    if (!showChart) return;
+    const timer = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, [showChart]);
+
   // Realized PNL from the coin's real Binance fee + funding history (kept live)
   const { realized, cardData, refresh: refreshRealized } = useRealizedPnl(activeTrade);
 
@@ -183,6 +204,18 @@ export default function Home() {
                     </button>
                   ))}
                 </div>
+                <button
+                  type="button"
+                  onClick={() => setShowChart(!showChart)}
+                  className={`h-8 px-3 rounded-lg border text-[10px] font-black uppercase transition-colors ${
+                    showChart
+                      ? "bg-primary text-primary-foreground border-primary"
+                      : "border-white/10 bg-white/5 text-muted-foreground hover:text-white"
+                  }`}
+                  data-testid="button-toggle-chart"
+                >
+                  Chart
+                </button>
                 <Button variant="outline" size="sm" onClick={handleCopyToClipboard} className="h-8 text-[10px] uppercase px-3 border-white/10 bg-white/5">
                   <Image className="w-3 h-3 mr-1.5" />
                   Copy
@@ -200,6 +233,22 @@ export default function Home() {
                   <div className="origin-top" style={{ transform: "scale(0.75)", transformOrigin: "top center" }}>
                     <div ref={cardRef} className="shrink-0">
                       <PnlCard data={cardData ?? activeTrade} language={cardLanguage} theme={cardTheme} />
+                      {showChart && (cardData ?? activeTrade) && (
+                        <PnlChart
+                          data={cardData ?? activeTrade}
+                          candles={
+                            klines.candles.length
+                              ? klines.candles
+                              : syntheticCandles((cardData ?? activeTrade).entryPrice, (cardData ?? activeTrade).markPrice, chartInterval, now)
+                          }
+                          interval={chartInterval}
+                          priceDecimals={klines.candles.length ? klines.priceDecimals : 2}
+                          now={now}
+                          theme={cardTheme}
+                          language={cardLanguage}
+                          onIntervalChange={setChartInterval}
+                        />
+                      )}
                     </div>
                   </div>
                 </div>

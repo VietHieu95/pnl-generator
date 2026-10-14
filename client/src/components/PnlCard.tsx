@@ -138,14 +138,24 @@ const SIDE_GLYPH = {
   B: "M5.12 13.05V3.95H8.6Q9.58 3.95 10.23 4.26Q10.88 4.57 11.21 5.11Q11.53 5.64 11.53 6.31Q11.53 6.87 11.32 7.26Q11.11 7.66 10.75 7.9Q10.39 8.14 9.94 8.25V8.34Q10.43 8.36 10.87 8.63Q11.32 8.9 11.6 9.39Q11.88 9.88 11.88 10.57Q11.88 11.27 11.54 11.84Q11.2 12.4 10.52 12.72Q9.83 13.05 8.79 13.05ZM6.75 11.68H8.53Q9.43 11.68 9.83 11.34Q10.23 10.99 10.23 10.45Q10.23 10.04 10.03 9.71Q9.83 9.39 9.46 9.19Q9.09 9 8.58 9H6.75ZM6.75 7.83H8.39Q8.82 7.83 9.16 7.67Q9.51 7.51 9.71 7.22Q9.9 6.92 9.9 6.52Q9.9 5.99 9.53 5.65Q9.16 5.31 8.43 5.31H6.75Z",
 };
 
+/** The card palette for a theme, shared with the chart under the card. */
+export function getCardColors(theme: PnlCardTheme = "dark") {
+  return theme === "black" ? BLACK_COLORS : theme === "light" ? LIGHT_COLORS : DARK_COLORS;
+}
+
+/** Number locale of the card: the dark English card uses 1.234,56, the rest 1,234.56. */
+export function getCardLocale(theme: PnlCardTheme = "dark", language: PnlCardLanguage = "en") {
+  return language === "zh" || theme !== "dark" ? "en-US" : "de-DE";
+}
+
 export function PnlCard({ data, language = "en", theme = "dark" }: PnlCardProps) {
   const isZh = language === "zh";
   const isLight = theme === "light";
-  const COLORS = theme === "black" ? BLACK_COLORS : isLight ? LIGHT_COLORS : DARK_COLORS;
+  const COLORS = getCardColors(theme);
   const t = LABELS[language];
   // Dark English card uses the European format (1.234,56) like its reference app;
   // the light reference and the Chinese card use 1,234.56
-  const locale = isZh || theme !== "dark" ? "en-US" : "de-DE";
+  const locale = getCardLocale(theme, language);
 
   const formatFixed = (num: number, decimals: number) =>
     new Intl.NumberFormat(locale, {

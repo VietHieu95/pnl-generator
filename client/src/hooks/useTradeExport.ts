@@ -59,7 +59,8 @@ export function useTradeExport(
       // Let React commit the refreshed values before the DOM is captured
       await new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
     }
-    const blob = await domToBlob(cardRef.current!, SCREENSHOT_OPTIONS);
+    const el = cardRef.current!;
+    const blob = await domToBlob(el, { ...SCREENSHOT_OPTIONS, width: el.offsetWidth || 480, height: el.offsetHeight || 297 });
     if (!blob) throw new Error("Failed to generate image.");
     return blob;
   }, [cardRef, beforeCapture]);
